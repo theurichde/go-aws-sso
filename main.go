@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssooidc"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
 	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v2/altsrc"
 	"github.com/valyala/fasttemplate"
 	"io/ioutil"
 	"log"
@@ -41,6 +42,19 @@ type ClientInformation struct {
 }
 
 func main() {
+	flags := []cli.Flag{
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:    "start-url",
+			Aliases: []string{"u"},
+			Usage:   "Set the SSO Login Start Url. (Example: https://my-login.awsapps.com/start#/)",
+		}),
+		&cli.StringFlag{
+			Name:    "config",
+			Aliases: []string{"c"},
+			Usage:   "Specify the config file to read from.",
+		},
+	}
+
 	app := &cli.App{
 		Name:      "go-aws-sso-util",
 		Usage:     "Retrieve short-living credentials via AWS SSO & SSOOIDC",
@@ -50,13 +64,8 @@ func main() {
 			start()
 			return nil
 		},
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:    "start-url",
-				Aliases: []string{"u"},
-				Usage:   "Set the SSO Login Start Url. Example: https://my-login.awsapps.com/start#/",
-			},
-		},
+		Flags:  flags,
+		Before: altsrc.InitInputSourceWithContext(flags, altsrc.NewYamlSourceFromFlagFunc("config")),
 	}
 
 	err := app.Run(os.Args)
@@ -265,4 +274,5 @@ func (ati ClientInformation) isExpired() bool {
 
 func init() {
 	// TODO: Read and write initial data like startURL and maybe some other settings
+
 }
