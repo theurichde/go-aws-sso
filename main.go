@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
+	"github.com/urfave/cli/v2"
 	"github.com/valyala/fasttemplate"
 	"io/ioutil"
 	"log"
@@ -27,6 +28,8 @@ const grantType = "urn:ietf:params:oauth:grant-type:device_code"
 const clientType = "public"
 const clientName = "go-aws-sso-util"
 
+var cliContext *cli.Context
+
 type ClientInformation struct {
 	AccessTokenExpiresAt    time.Time
 	AccessToken             string
@@ -38,6 +41,31 @@ type ClientInformation struct {
 }
 
 func main() {
+	app := &cli.App{
+		Name:      "go-aws-sso-util",
+		Usage:     "Retrieve short-living credentials via AWS SSO & SSOOIDC",
+		UsageText: "Usage Text",
+		Action: func(context *cli.Context) error {
+			cliContext = context
+			start()
+			return nil
+		},
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "start-url",
+				Aliases: []string{"u"},
+				Usage:   "Set the SSO Login Start Url. Example: https://my-login.awsapps.com/start#/",
+			},
+		},
+	}
+
+	err := app.Run(os.Args)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func start() {
 
 	sess := session.Must(session.NewSession(&aws.Config{
 		Region:      aws.String(region),
@@ -188,10 +216,13 @@ func registerClient(oidc ssooidciface.SSOOIDCAPI) *ClientInformation {
 }
 
 func startDeviceAuthorization(oidc ssooidciface.SSOOIDCAPI, rco *ssooidc.RegisterClientOutput) *ssooidc.StartDeviceAuthorizationOutput {
-	var startUrl = "https://idealo-login.awsapps.com/start#/"
+	startUrl := cliContext.String("start-url")
 	sdai := ssooidc.StartDeviceAuthorizationInput{ClientId: rco.ClientId, ClientSecret: rco.ClientSecret, StartUrl: &startUrl}
-	sdao, _ := oidc.StartDeviceAuthorization(&sdai)
-	fmt.Println("Please verify your client request: " + *sdao.VerificationUriComplete)
+	sdao, err := oidc.StartDeviceAuthorization(&sdai)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Please verify your client request: " + *sdao.VerificationUriComplete)
 	return sdao
 }
 
