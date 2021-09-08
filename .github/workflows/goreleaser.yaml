@@ -33,7 +33,6 @@ jobs:
       -
         name: Tests
         run: |
-          go mod tidy
           go test -v ./...
       -
         name: Run GoReleaser
@@ -43,4 +42,4 @@ jobs:
           version: latest
           args: release --rm-dist
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
