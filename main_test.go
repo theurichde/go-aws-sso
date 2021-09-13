@@ -2,11 +2,57 @@ package main
 
 import (
 	"github.com/aws/aws-sdk-go/service/sso"
+	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc"
+	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
+	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
 	"time"
 )
+
+type mockSSOOIDCClient struct {
+	ssooidciface.SSOOIDCAPI
+	CreateTokenOutput              ssooidc.CreateTokenOutput
+	RegisterClientOutput           ssooidc.RegisterClientOutput
+	StartDeviceAuthorizationOutput ssooidc.StartDeviceAuthorizationOutput
+}
+
+func (m mockSSOOIDCClient) CreateToken(in *ssooidc.CreateTokenInput) (*ssooidc.CreateTokenOutput, error) {
+	return &m.CreateTokenOutput, nil
+}
+
+func (m mockSSOOIDCClient) StartDeviceAuthorization(in *ssooidc.StartDeviceAuthorizationInput) (*ssooidc.StartDeviceAuthorizationOutput, error) {
+	return &m.StartDeviceAuthorizationOutput, nil
+}
+
+type mockSSOClient struct {
+	ssoiface.SSOAPI
+	GetRoleCredentialsOutput sso.GetRoleCredentialsOutput
+	ListAccountRolesOutput   sso.ListAccountRolesOutput
+	ListAccountsOutput       sso.ListAccountsOutput
+}
+
+func (m mockSSOClient) ListAccountRoles(in *sso.ListAccountRolesInput) (*sso.ListAccountRolesOutput, error) {
+	return &m.ListAccountRolesOutput, nil
+}
+
+func (m mockSSOClient) ListAccounts(in *sso.ListAccountsInput) (*sso.ListAccountsOutput, error) {
+	return &m.ListAccountsOutput, nil
+}
+
+func (m mockSSOClient) GetRoleCredentials(*sso.GetRoleCredentialsInput) (*sso.GetRoleCredentialsOutput, error) {
+	return &m.GetRoleCredentialsOutput, nil
+}
+
+type mockTime struct {
+	TimeIface
+}
+
+func (t mockTime) Now() time.Time {
+	return time.Date(2021, 01, 01, 00, 00, 00, 00, &time.Location{})
+}
 
 func TestClientInformation_isExpired(t *testing.T) {
 	type fields struct {
@@ -44,189 +90,148 @@ func TestClientInformation_isExpired(t *testing.T) {
 	}
 }
 
-func Test_handleOutdatedAccessToken(t *testing.T) {
-	type args struct {
-		clientInformation ClientInformation
-		oidcClient        *ssooidc.SSOOIDC
-	}
-	tests := []struct {
-		name string
-		args args
-		want ClientInformation
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := handleOutdatedAccessToken(tt.args.clientInformation, tt.args.oidcClient); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("handleOutdatedAccessToken() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_readClientInformation(t *testing.T) {
-	type args struct {
-		file string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    ClientInformation
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := readClientInformation(tt.args.file)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("readClientInformation() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("readClientInformation() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_registerClient(t *testing.T) {
-	type args struct {
-		oidc *ssooidc.SSOOIDC
-	}
-	tests := []struct {
-		name string
-		args args
-		want *ClientInformation
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := registerClient(tt.args.oidc); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("registerClient() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_retrieveAccountInfo(t *testing.T) {
-	type args struct {
-		clientInformation ClientInformation
-		ssoClient         *sso.SSO
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *sso.AccountInfo
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := retrieveAccountInfo(tt.args.clientInformation, tt.args.ssoClient)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("retrieveAccountInfo() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("retrieveAccountInfo() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_retrieveRoleInfo(t *testing.T) {
-	type args struct {
-		accountInfo       *sso.AccountInfo
-		clientInformation ClientInformation
-		ssoClient         *sso.SSO
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    *sso.RoleInfo
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := retrieveRoleInfo(tt.args.accountInfo, tt.args.clientInformation, tt.args.ssoClient)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("retrieveRoleInfo() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("retrieveRoleInfo() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func Test_retrieveToken(t *testing.T) {
+
+	mockTime := mockTime{}
+	at := "accessToken"
+	want := ClientInformation{AccessToken: at, AccessTokenExpiresAt: mockTime.Now().Add(time.Hour*8 - time.Minute*5)}
+
+	t.Run("foobar", func(t *testing.T) {
+		mockClient := mockSSOOIDCClient{CreateTokenOutput: ssooidc.CreateTokenOutput{
+			AccessToken: &at,
+		}}
+
+		got := retrieveToken(mockClient, mockTime, &ClientInformation{})
+
+		if !reflect.DeepEqual(*got, want) {
+			t.Errorf("retrieveToken() = got %v, want %v", *got, want)
+		}
+
+	})
+
+}
+
+func Test_processCredentialsTemplate(t *testing.T) {
 	type args struct {
-		client      *ssooidc.SSOOIDC
-		input       ssooidc.CreateTokenInput
-		information *ClientInformation
+		accessKeyId     string
+		expiration      string
+		secretAccessKey string
+		sessionToken    string
+		credentials     *sso.GetRoleCredentialsOutput
 	}
+
+	accessKeyId := "access_key_id"
+	secretAccessKey := "secret_access_key"
+	sessionToken := "session_token"
+
 	tests := []struct {
 		name string
 		args args
-		want *ClientInformation
+		want string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Process Credentials Template",
+			args: args{
+				credentials: &sso.GetRoleCredentialsOutput{RoleCredentials: &sso.RoleCredentials{
+					AccessKeyId:     &accessKeyId,
+					SecretAccessKey: &secretAccessKey,
+					SessionToken:    &sessionToken,
+				}},
+			},
+			want: "[default]\naws_access_key_id = access_key_id\naws_secret_access_key = secret_access_key\naws_session_token = session_token\noutput = json\nregion = eu-central-1",
+		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := retrieveToken(tt.args.client, tt.args.input, tt.args.information); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("retrieveToken() = %v, want %v", got, tt.want)
+			if got := processCredentialsTemplate(tt.args.credentials); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("processCredentialsTemplate() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func Test_startDeviceAuthorization(t *testing.T) {
-	type args struct {
-		oidc *ssooidc.SSOOIDC
-		rco  *ssooidc.RegisterClientOutput
-	}
-	tests := []struct {
-		name string
-		args args
-		want *ssooidc.StartDeviceAuthorizationOutput
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := startDeviceAuthorization(tt.args.oidc, tt.args.rco); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("startDeviceAuthorization() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+func Test_isFileExisting(t *testing.T) {
+
+	tempFile, _ := os.CreateTemp("", "used-for-testing")
+	t.Run("True if file exists", func(t *testing.T) {
+		got := isFileExisting(tempFile.Name())
+		if got != true {
+			t.Errorf("isFileExisting() = %v, want %v", got, true)
+		}
+	})
+
+	t.Run("False if file does not exist", func(t *testing.T) {
+		got := isFileExisting("/tmp/not-existing-file.name")
+		if got != false {
+			t.Errorf("isFileExisting() = %v, want %v", got, true)
+		}
+	})
 }
 
-func Test_tryToRetrieveToken(t *testing.T) {
-	type args struct {
-		client *ssooidc.SSOOIDC
-		input  ssooidc.CreateTokenInput
-		info   *ClientInformation
+func Test_start(t *testing.T) {
+
+	dummyInt := int64(132465)
+	dummy := "dummy"
+	accessToken := "AccessToken"
+	accountId := "AccountId"
+	accountName := "AccountName"
+	roleName := "RoleName"
+
+	ssoClient := mockSSOClient{
+		SSOAPI: nil,
+		GetRoleCredentialsOutput: sso.GetRoleCredentialsOutput{RoleCredentials: &sso.RoleCredentials{
+			AccessKeyId:     &dummy,
+			Expiration:      &dummyInt,
+			SecretAccessKey: &dummy,
+			SessionToken:    &dummy,
+		}},
+		ListAccountRolesOutput: sso.ListAccountRolesOutput{
+			RoleList: []*sso.RoleInfo{
+				{
+					AccountId: &accountId,
+					RoleName:  &roleName,
+				},
+			},
+		},
+		ListAccountsOutput: sso.ListAccountsOutput{
+			AccountList: []*sso.AccountInfo{
+				{
+					AccountId:   &accountId,
+					AccountName: &accountName,
+				},
+			},
+		},
 	}
-	tests := []struct {
-		name string
-		args args
-		want *ClientInformation
-	}{
-		// TODO: Add test cases.
+
+	oidcClient := mockSSOOIDCClient{
+		SSOOIDCAPI: nil,
+		CreateTokenOutput: ssooidc.CreateTokenOutput{
+			AccessToken: &accessToken,
+		},
+		RegisterClientOutput: ssooidc.RegisterClientOutput{
+			AuthorizationEndpoint: &dummy,
+			ClientId:              &dummy,
+			ClientSecret:          &dummy,
+			TokenEndpoint:         &dummy,
+		},
+		StartDeviceAuthorizationOutput: ssooidc.StartDeviceAuthorizationOutput{
+			DeviceCode:              &dummy,
+			UserCode:                &dummy,
+			VerificationUri:         &dummy,
+			VerificationUriComplete: &dummy,
+		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tryToRetrieveToken(tt.args.client, tt.args.input, tt.args.info); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("tryToRetrieveToken() = %v, want %v", got, tt.want)
-			}
-		})
+
+	// TODO Set target as a temporary file
+	start(oidcClient, ssoClient)
+
+	homeDir, _ := os.UserHomeDir()
+	content, _ := ioutil.ReadFile(homeDir + "/.aws/credentials")
+	got := string(content)
+	want := "[default]\naws_access_key_id = dummy\naws_secret_access_key = dummy\naws_session_token = dummy\noutput = json\nregion = eu-central-1"
+
+	if got != want {
+		t.Errorf("Got: %v, but wanted: %v", got, want)
 	}
 }

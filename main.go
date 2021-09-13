@@ -42,6 +42,9 @@ type ClientInformation struct {
 }
 
 func main() {
+
+	homeDir, _ := os.UserHomeDir()
+
 	flags := []cli.Flag{
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:    "start-url",
@@ -49,19 +52,21 @@ func main() {
 			Usage:   "Set the SSO Login Start Url. (Example: https://my-login.awsapps.com/start#/)",
 		}),
 		&cli.StringFlag{
-			Name:    "config",
-			Aliases: []string{"c"},
-			Usage:   "Specify the config file to read from.",
+			Name:        "config",
+			Aliases:     []string{"c"},
+			Usage:       "Specify the config file to read from.",
+			DefaultText: "~/.aws/go-aws-sso-util-config.yaml",
+			Value:       homeDir + "/.aws/go-aws-sso-util-config.yaml",
+			HasBeenSet:  isFileExisting(homeDir + "/.aws/go-aws-sso-util-config.yaml"),
 		},
 	}
 
 	app := &cli.App{
-		Name:      "go-aws-sso-util",
-		Usage:     "Retrieve short-living credentials via AWS SSO & SSOOIDC",
-		UsageText: "Usage Text",
+		Name:  "go-aws-sso-util",
+		Usage: "Retrieve short-living credentials via AWS SSO & SSOOIDC",
 		Action: func(context *cli.Context) error {
 			cliContext = context
-			start()
+			start(initClients())
 			return nil
 		},
 		Flags:  flags,
@@ -74,40 +79,35 @@ func main() {
 	}
 }
 
-func start() {
-
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region:      aws.String(region),
-		Credentials: credentials.AnonymousCredentials},
-	))
-	oidcClient := ssooidc.New(sess, aws.NewConfig().WithRegion(region))
+func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI) {
 
 	clientInformation, err := readClientInformation(clientInfoFileDestination())
 	if err != nil {
 		var clientInfoPointer *ClientInformation
 		clientInfoPointer = registerClient(oidcClient)
-		cti := generateCreateTokenInput(clientInfoPointer)
-		clientInfoPointer = retrieveToken(oidcClient, cti, clientInfoPointer)
-		writeInfoToFile(clientInfoPointer, clientInfoFileDestination())
+		clientInfoPointer = retrieveToken(oidcClient, Time{}, clientInfoPointer)
+		writeClientInfoToFile(clientInfoPointer, clientInfoFileDestination())
 		clientInformation = *clientInfoPointer
 	} else if clientInformation.isExpired() {
+		log.Println("AccessToken expired. Start retrieving a new AccessToken.")
 		clientInformation = handleOutdatedAccessToken(clientInformation, oidcClient)
 	}
 
 	// Accounts & Roles
-	ssoClient := sso.New(sess, aws.NewConfig().WithRegion(region))
 	accountInfo, _ := retrieveAccountInfo(clientInformation, ssoClient)
 	roleInfo, _ := retrieveRoleInfo(accountInfo, clientInformation, ssoClient)
 
 	rci := &sso.GetRoleCredentialsInput{AccountId: accountInfo.AccountId, RoleName: roleInfo.RoleName, AccessToken: &clientInformation.AccessToken}
 	roleCredentials, _ := ssoClient.GetRoleCredentials(rci)
 
-	writeAWSCredentialsFile(roleCredentials)
+	template := processCredentialsTemplate(roleCredentials)
+	writeAWSCredentialsFile(template)
 	// TODO: Print information like expiration time
+
+	log.Println(roleCredentials.RoleCredentials.Expiration)
 }
 
-func writeAWSCredentialsFile(credentials *sso.GetRoleCredentialsOutput) {
-
+func processCredentialsTemplate(credentials *sso.GetRoleCredentialsOutput) string {
 	template := `[default]
 aws_access_key_id = {{access_key_id}}
 aws_secret_access_key = {{secret_access_key}}
@@ -121,9 +121,13 @@ region = eu-central-1`
 		"secret_access_key": *credentials.RoleCredentials.SecretAccessKey,
 		"session_token":     *credentials.RoleCredentials.SessionToken,
 	})
+	return filledTemplate
+}
+
+func writeAWSCredentialsFile(template string) {
 
 	homeDir, _ := os.UserHomeDir()
-	_ = ioutil.WriteFile(homeDir+"/.aws/credentials", []byte(filledTemplate), 0644)
+	_ = ioutil.WriteFile(homeDir+"/.aws/credentials", []byte(template), 0644)
 
 }
 
@@ -165,13 +169,12 @@ func retrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInfo
 	// TODO: Error Handling
 }
 
-func handleOutdatedAccessToken(clientInformation ClientInformation, oidcClient *ssooidc.SSOOIDC) ClientInformation {
-	log.Println("AccessToken expired. Start retrieving a new AccessToken.")
-	clientInformation.DeviceCode = *startDeviceAuthorization(oidcClient, &ssooidc.RegisterClientOutput{ClientId: &clientInformation.ClientId, ClientSecret: &clientInformation.ClientSecret}).DeviceCode
-	cti := generateCreateTokenInput(&clientInformation)
+func handleOutdatedAccessToken(clientInformation ClientInformation, oidcClient ssooidciface.SSOOIDCAPI) ClientInformation {
+	registerClientOutput := ssooidc.RegisterClientOutput{ClientId: &clientInformation.ClientId, ClientSecret: &clientInformation.ClientSecret}
+	clientInformation.DeviceCode = *startDeviceAuthorization(oidcClient, &registerClientOutput).DeviceCode
 	var clientInfoPointer *ClientInformation
-	clientInfoPointer = retrieveToken(oidcClient, cti, &clientInformation)
-	writeInfoToFile(clientInfoPointer, clientInfoFileDestination())
+	clientInfoPointer = retrieveToken(oidcClient, Time{}, &clientInformation)
+	writeClientInfoToFile(clientInfoPointer, clientInfoFileDestination())
 	return *clientInfoPointer
 }
 
@@ -180,7 +183,7 @@ func generateCreateTokenInput(clientInformation *ClientInformation) ssooidc.Crea
 	return ssooidc.CreateTokenInput{ClientId: &clientInformation.ClientId, ClientSecret: &clientInformation.ClientSecret, DeviceCode: &clientInformation.DeviceCode, GrantType: &gtp}
 }
 
-func writeInfoToFile(information *ClientInformation, dest string) {
+func writeClientInfoToFile(information *ClientInformation, dest string) {
 	file, _ := json.MarshalIndent(information, "", " ")
 	_ = ioutil.WriteFile(dest, file, 0644)
 }
@@ -224,22 +227,29 @@ func registerClient(oidc ssooidciface.SSOOIDCAPI) *ClientInformation {
 	}
 }
 
-func startDeviceAuthorization(oidc ssooidciface.SSOOIDCAPI, rco *ssooidc.RegisterClientOutput) *ssooidc.StartDeviceAuthorizationOutput {
+func startDeviceAuthorization(oidc ssooidciface.SSOOIDCAPI, rco *ssooidc.RegisterClientOutput) ssooidc.StartDeviceAuthorizationOutput {
 	startUrl := cliContext.String("start-url")
-	sdai := ssooidc.StartDeviceAuthorizationInput{ClientId: rco.ClientId, ClientSecret: rco.ClientSecret, StartUrl: &startUrl}
-	sdao, err := oidc.StartDeviceAuthorization(&sdai)
+	sdao, err := oidc.StartDeviceAuthorization(&ssooidc.StartDeviceAuthorizationInput{ClientId: rco.ClientId, ClientSecret: rco.ClientSecret, StartUrl: &startUrl})
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Please verify your client request: " + *sdao.VerificationUriComplete)
-	return sdao
+	return *sdao
 }
 
-func retrieveToken(client ssooidciface.SSOOIDCAPI, input ssooidc.CreateTokenInput, information *ClientInformation) *ClientInformation {
-	return tryToRetrieveToken(client, input, information)
+type TimeIface interface {
+	Now() time.Time
 }
 
-func tryToRetrieveToken(client ssooidciface.SSOOIDCAPI, input ssooidc.CreateTokenInput, info *ClientInformation) *ClientInformation {
+type Time struct {
+}
+
+func (i Time) Now() time.Time {
+	return time.Now()
+}
+
+func retrieveToken(client ssooidciface.SSOOIDCAPI, timeIface TimeIface, info *ClientInformation) *ClientInformation {
+	input := generateCreateTokenInput(info)
 	for {
 		cto, err := client.CreateToken(&input)
 		if err != nil {
@@ -254,7 +264,7 @@ func tryToRetrieveToken(client ssooidciface.SSOOIDCAPI, input ssooidc.CreateToke
 			}
 		} else {
 			info.AccessToken = *cto.AccessToken
-			info.AccessTokenExpiresAt = time.Now().Add(time.Hour*8 - time.Minute*5)
+			info.AccessTokenExpiresAt = timeIface.Now().Add(time.Hour*8 - time.Minute*5)
 			return info
 		}
 	}
@@ -272,7 +282,14 @@ func (ati ClientInformation) isExpired() bool {
 	return false
 }
 
-func init() {
-	// TODO: Read and write initial data like startURL and maybe some other settings
+func initClients() (ssooidciface.SSOOIDCAPI, ssoiface.SSOAPI) {
+	sess := session.Must(session.NewSession(&aws.Config{
+		Region:      aws.String(region),
+		Credentials: credentials.AnonymousCredentials},
+	))
 
+	oidcClient := ssooidc.New(sess, aws.NewConfig().WithRegion(region))
+	ssoClient := sso.New(sess, aws.NewConfig().WithRegion(region))
+
+	return oidcClient, ssoClient
 }
