@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
+	"github.com/olekukonko/tablewriter"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
 	"github.com/valyala/fasttemplate"
@@ -39,6 +40,17 @@ type ClientInformation struct {
 	ClientSecretExpiresAt   string
 	DeviceCode              string
 	VerificationUriComplete string
+}
+
+type Timer interface {
+	Now() time.Time
+}
+
+type Time struct {
+}
+
+func (i Time) Now() time.Time {
+	return time.Now()
 }
 
 func main() {
@@ -102,9 +114,9 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI) {
 
 	template := processCredentialsTemplate(roleCredentials)
 	writeAWSCredentialsFile(template)
-	// TODO: Print information like expiration time
 
-	log.Println(roleCredentials.RoleCredentials.Expiration)
+	log.Printf("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
+
 }
 
 func processCredentialsTemplate(credentials *sso.GetRoleCredentialsOutput) string {
@@ -134,15 +146,24 @@ func writeAWSCredentialsFile(template string) {
 func retrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface.SSOAPI) (*sso.AccountInfo, error) {
 	lai := sso.ListAccountsInput{AccessToken: &clientInformation.AccessToken}
 	accounts, _ := ssoClient.ListAccounts(&lai)
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"ID", "Account Name", "Account ID"})
+	table.SetBorder(false)
+	table.SetRowLine(false)
+	table.SetAutoWrapText(false)
+
 	for i, info := range accounts.AccountList {
-		layout := "[%d] AccountName: %q"
-		fmt.Println(fmt.Sprintf(layout, i, *info.AccountName))
+		table.Append([]string{strconv.Itoa(i), *info.AccountName, *info.AccountId})
 	}
+
+	table.Render()
 	fmt.Print("Please choose an Account: ")
 	reader := bufio.NewReader(os.Stdin)
 	strChoice, _ := reader.ReadString('\n')
 	intChoice, err := strconv.Atoi(strings.Replace(strChoice, "\n", "", -1))
 	accountInfo := accounts.AccountList[intChoice]
+	log.Printf("Selected account: %s - %s", *accountInfo.AccountName, *accountInfo.AccountId)
 	return accountInfo, err
 	// TODO: Error Handling
 }
@@ -152,7 +173,7 @@ func retrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInfo
 	roles, _ := ssoClient.ListAccountRoles(lari)
 
 	if len(roles.RoleList) == 1 {
-		fmt.Println("Only one role available. Selected role: " + *roles.RoleList[0].RoleName)
+		log.Printf("Only one role available. Selected role: %s\n", *roles.RoleList[0].RoleName)
 		return roles.RoleList[0], nil
 	}
 
@@ -161,6 +182,7 @@ func retrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInfo
 		layout := "[%d] RoleName: %q"
 		fmt.Println(fmt.Sprintf(layout, i, *info.RoleName))
 	}
+
 	reader := bufio.NewReader(os.Stdin)
 	strChoice, _ := reader.ReadString('\n')
 	intChoice, _ := strconv.Atoi(strings.ReplaceAll(strChoice, "\n", ""))
@@ -237,18 +259,7 @@ func startDeviceAuthorization(oidc ssooidciface.SSOOIDCAPI, rco *ssooidc.Registe
 	return *sdao
 }
 
-type TimeIface interface {
-	Now() time.Time
-}
-
-type Time struct {
-}
-
-func (i Time) Now() time.Time {
-	return time.Now()
-}
-
-func retrieveToken(client ssooidciface.SSOOIDCAPI, timeIface TimeIface, info *ClientInformation) *ClientInformation {
+func retrieveToken(client ssooidciface.SSOOIDCAPI, timer Timer, info *ClientInformation) *ClientInformation {
 	input := generateCreateTokenInput(info)
 	for {
 		cto, err := client.CreateToken(&input)
@@ -264,7 +275,7 @@ func retrieveToken(client ssooidciface.SSOOIDCAPI, timeIface TimeIface, info *Cl
 			}
 		} else {
 			info.AccessToken = *cto.AccessToken
-			info.AccessTokenExpiresAt = timeIface.Now().Add(time.Hour*8 - time.Minute*5)
+			info.AccessTokenExpiresAt = timer.Now().Add(time.Hour*8 - time.Minute*5)
 			return info
 		}
 	}

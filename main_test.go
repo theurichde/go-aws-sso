@@ -47,7 +47,7 @@ func (m mockSSOClient) GetRoleCredentials(*sso.GetRoleCredentialsInput) (*sso.Ge
 }
 
 type mockTime struct {
-	TimeIface
+	Timer
 }
 
 func (t mockTime) Now() time.Time {
