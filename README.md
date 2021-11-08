@@ -20,13 +20,17 @@ Compile from source or download the according binary.
 ```
 ./go-aws-sso --start-url "https://my-sso-login.awsapps.com"
 
-2021/09/10 22:08:27 Please verify your client request: https://device.sso.eu-central-1.amazonaws.com/?user_code=USR-CDE
-2021/09/10 22:08:27 Still waiting for authorization...
-[0] AccountName: "SDLC"
-[1] AccountName: "Sandbox"
-[2] AccountName: "Production"
+2021/11/08 19:34:40 Please verify your client request: https://device.sso.eu-central-1.amazonaws.com/?user_code=USR-CDE
+2021/11/08 19:34:40 Still waiting for authorization...
+  ID |        ACCOUNT NAME      |  ACCOUNT ID   
+-----+--------------------------+---------------
+   0 | Awesome API - SDLC       | YYYYYXXXXXXX  
+   1 | Team Sandbox             | XXXXXXXXXXXX  
+   2 | Awesome API - Production | YYYYYYYYYYYY  
 Please choose an Account: 1
-Only one role available. Selected role: AWSAccess
+2021/11/08 19:34:43 Selected account: Team Sandbox - 217238673132
+2021/11/08 19:34:43 Only one role available. Selected role: AWSAdministratorAccess
+2021/11/08 19:34:43 Credentials expire at: 2021-11-08 20:34:43 +0100 CET
 ```
 
 ## License
