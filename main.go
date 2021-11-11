@@ -138,9 +138,10 @@ region = eu-central-1`
 
 func writeAWSCredentialsFile(template string) {
 
-	homeDir, _ := os.UserHomeDir()
-	_ = ioutil.WriteFile(homeDir+"/.aws/credentials", []byte(template), 0644)
-
+	homeDir, err := os.UserHomeDir()
+	check(err)
+	err = ioutil.WriteFile(homeDir+"/.aws/credentials", []byte(template), 0644)
+	check(err)
 }
 
 func retrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface.SSOAPI) (*sso.AccountInfo, error) {
@@ -307,4 +308,10 @@ func initClients() (ssooidciface.SSOOIDCAPI, ssoiface.SSOAPI) {
 	ssoClient := sso.New(sess, aws.NewConfig().WithRegion(region))
 
 	return oidcClient, ssoClient
+}
+
+func check(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
 }
