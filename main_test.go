@@ -1,10 +1,12 @@
 package main
 
 import (
+	"flag"
 	"github.com/aws/aws-sdk-go/service/sso"
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
+	"github.com/urfave/cli/v2"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -25,6 +27,10 @@ func (m mockSSOOIDCClient) CreateToken(in *ssooidc.CreateTokenInput) (*ssooidc.C
 
 func (m mockSSOOIDCClient) StartDeviceAuthorization(in *ssooidc.StartDeviceAuthorizationInput) (*ssooidc.StartDeviceAuthorizationOutput, error) {
 	return &m.StartDeviceAuthorizationOutput, nil
+}
+
+func (m mockSSOOIDCClient) RegisterClient(*ssooidc.RegisterClientInput) (*ssooidc.RegisterClientOutput, error) {
+	return &m.RegisterClientOutput, nil
 }
 
 type mockSSOClient struct {
@@ -204,6 +210,8 @@ func Test_start(t *testing.T) {
 		},
 	}
 
+	expires := int64(0)
+
 	oidcClient := mockSSOOIDCClient{
 		SSOOIDCAPI: nil,
 		CreateTokenOutput: ssooidc.CreateTokenOutput{
@@ -213,6 +221,7 @@ func Test_start(t *testing.T) {
 			AuthorizationEndpoint: &dummy,
 			ClientId:              &dummy,
 			ClientSecret:          &dummy,
+			ClientSecretExpiresAt: &expires,
 			TokenEndpoint:         &dummy,
 		},
 		StartDeviceAuthorizationOutput: ssooidc.StartDeviceAuthorizationOutput{
@@ -223,8 +232,11 @@ func Test_start(t *testing.T) {
 		},
 	}
 
-	// TODO Set target as a temporary file
-	start(oidcClient, ssoClient)
+	// TODO Set access-token.json as a temporary file for testing
+	set := flag.NewFlagSet("start-url", 0)
+	set.String("start-url", "foo", "")
+	newContext := cli.NewContext(nil, set, nil)
+	start(oidcClient, ssoClient, newContext)
 
 	homeDir, _ := os.UserHomeDir()
 	content, _ := ioutil.ReadFile(homeDir + "/.aws/credentials")

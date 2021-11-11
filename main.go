@@ -77,8 +77,8 @@ func main() {
 		Name:  "go-aws-sso-util",
 		Usage: "Retrieve short-living credentials via AWS SSO & SSOOIDC",
 		Action: func(context *cli.Context) error {
-			cliContext = context
-			start(initClients())
+			oidcApi, ssoApi := initClients()
+			start(oidcApi, ssoApi, context)
 			return nil
 		},
 		Flags:  flags,
@@ -91,8 +91,8 @@ func main() {
 	}
 }
 
-func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI) {
-
+func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context) {
+	cliContext = context
 	clientInformation, err := readClientInformation(clientInfoFileDestination())
 	if err != nil {
 		var clientInfoPointer *ClientInformation
