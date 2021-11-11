@@ -157,13 +157,17 @@ func retrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface
 		table.Append([]string{strconv.Itoa(i), *info.AccountName, *info.AccountId})
 	}
 
+	fmt.Println()
 	table.Render()
 	fmt.Print("Please choose an Account: ")
+
 	reader := bufio.NewReader(os.Stdin)
 	strChoice, _ := reader.ReadString('\n')
 	intChoice, err := strconv.Atoi(strings.Replace(strChoice, "\n", "", -1))
 	accountInfo := accounts.AccountList[intChoice]
+
 	log.Printf("Selected account: %s - %s", *accountInfo.AccountName, *accountInfo.AccountId)
+	fmt.Println()
 	return accountInfo, err
 	// TODO: Error Handling
 }
