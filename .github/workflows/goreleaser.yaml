@@ -1,4 +1,4 @@
-name: build
+name: Build & Release a New Version
 
 on:
   push:
