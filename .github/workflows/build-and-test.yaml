@@ -4,12 +4,6 @@ on:
   push:
     branches:
       - develop
-  workflow_dispatch:
-    inputs:
-      debug_enabled:
-        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
-        required: false
-        default: false
 
 jobs:
   build:
@@ -33,8 +27,3 @@ jobs:
       - name: Tests
         run: |
           go test -v
-      - name: Debugging with tmate
-        uses: mxschmitt/action-tmate@v3.7
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
-        with:
-          limit-access-to-actor: true

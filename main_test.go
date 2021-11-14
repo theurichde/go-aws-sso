@@ -232,6 +232,8 @@ func Test_start(t *testing.T) {
 		},
 	}
 
+	_ = os.Setenv("HOME", "/tmp")
+
 	// TODO Set access-token.json as a temporary file for testing
 	set := flag.NewFlagSet("start-url", 0)
 	set.String("start-url", "foo", "")

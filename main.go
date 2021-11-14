@@ -140,7 +140,15 @@ func writeAWSCredentialsFile(template string) {
 
 	homeDir, err := os.UserHomeDir()
 	check(err)
-	err = ioutil.WriteFile(homeDir+"/.aws/credentials", []byte(template), 0644)
+
+	credentialsFile := homeDir + "/.aws/credentials"
+	if !isFileExisting(credentialsFile) {
+		err = os.MkdirAll(homeDir+"/.aws", 0777)
+		check(err)
+		_, err = os.OpenFile(credentialsFile, os.O_CREATE, 0644)
+		check(err)
+	}
+	err = ioutil.WriteFile(credentialsFile, []byte(template), 0644)
 	check(err)
 }
 
