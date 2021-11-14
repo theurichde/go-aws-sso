@@ -1,4 +1,4 @@
-module go-aws-sso
+module github.com/theurichde/go-aws-sso
 
 require (
 	github.com/aws/aws-sdk-go v1.40.32
