@@ -13,13 +13,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
-	"github.com/olekukonko/tablewriter"
+	"github.com/lithammer/fuzzysearch/fuzzy"
+	"github.com/manifoldco/promptui"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
 	"github.com/valyala/fasttemplate"
 	"io/ioutil"
 	"log"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -28,7 +30,7 @@ import (
 const region = "eu-central-1"
 const grantType = "urn:ietf:params:oauth:grant-type:device_code"
 const clientType = "public"
-const clientName = "go-aws-sso-util"
+const clientName = "go-aws-sso"
 
 var cliContext *cli.Context
 
@@ -67,14 +69,14 @@ func main() {
 			Name:        "config",
 			Aliases:     []string{"c"},
 			Usage:       "Specify the config file to read from.",
-			DefaultText: "~/.aws/go-aws-sso-util-config.yaml",
-			Value:       homeDir + "/.aws/go-aws-sso-util-config.yaml",
-			HasBeenSet:  isFileExisting(homeDir + "/.aws/go-aws-sso-util-config.yaml"),
+			DefaultText: "~/.aws/go-aws-sso-config.yaml",
+			Value:       homeDir + "/.aws/go-aws-sso-config.yaml",
+			HasBeenSet:  isFileExisting(homeDir + "/.aws/go-aws-sso-config.yaml"),
 		},
 	}
 
 	app := &cli.App{
-		Name:  "go-aws-sso-util",
+		Name:  "go-aws-sso",
 		Usage: "Retrieve short-living credentials via AWS SSO & SSOOIDC",
 		Action: func(context *cli.Context) error {
 			oidcApi, ssoApi := initClients()
@@ -107,10 +109,11 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 
 	// Accounts & Roles
 	accountInfo, _ := retrieveAccountInfo(clientInformation, ssoClient)
-	roleInfo, _ := retrieveRoleInfo(accountInfo, clientInformation, ssoClient)
+	roleInfo := retrieveRoleInfo(accountInfo, clientInformation, ssoClient)
 
 	rci := &sso.GetRoleCredentialsInput{AccountId: accountInfo.AccountId, RoleName: roleInfo.RoleName, AccessToken: &clientInformation.AccessToken}
-	roleCredentials, _ := ssoClient.GetRoleCredentials(rci)
+	roleCredentials, err := ssoClient.GetRoleCredentials(rci)
+	check(err)
 
 	template := processCredentialsTemplate(roleCredentials)
 	writeAWSCredentialsFile(template)
@@ -156,38 +159,59 @@ func retrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface
 	lai := sso.ListAccountsInput{AccessToken: &clientInformation.AccessToken}
 	accounts, _ := ssoClient.ListAccounts(&lai)
 
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"ID", "Account Name", "Account ID"})
-	table.SetBorder(false)
-	table.SetRowLine(false)
-	table.SetAutoWrapText(false)
+	var accountInfos []string
+	linePrefix := "#"
 
 	for i, info := range accounts.AccountList {
-		table.Append([]string{strconv.Itoa(i), *info.AccountName, *info.AccountId})
+		accountInfos = append(accountInfos, linePrefix+strconv.Itoa(i)+" "+*info.AccountName+" "+*info.AccountId)
 	}
 
-	fmt.Println()
-	table.Render()
-	fmt.Print("Please choose an Account: ")
+	prompt := promptui.Select{
+		Label: "Select your account - Hint: fuzzy search supported. To choose one account directly just enter #{Int}",
+		Items: accountInfos,
+		Size:  20,
+		Searcher: func(input string, index int) bool {
+			info := accountInfos[index]
 
-	reader := bufio.NewReader(os.Stdin)
-	strChoice, _ := reader.ReadString('\n')
-	intChoice, err := strconv.Atoi(strings.Replace(strChoice, "\n", "", -1))
+			if strings.HasPrefix(input, linePrefix) {
+				if strings.HasPrefix(info, input) {
+					return true
+				} else {
+					return false
+				}
+			} else {
+				if fuzzy.MatchFold(input, info) {
+					return true
+				}
+			}
+			return false
+		},
+		StartInSearchMode: true,
+	}
+
+	_, result, err := prompt.Run()
+	check(err)
+
+	fmt.Println()
+
+	compile := regexp.MustCompile("[0-9]+")
+	find := compile.Find([]byte(result))
+
+	intChoice, err := strconv.Atoi(strings.Replace(string(find), "\n", "", -1))
 	accountInfo := accounts.AccountList[intChoice]
 
 	log.Printf("Selected account: %s - %s", *accountInfo.AccountName, *accountInfo.AccountId)
 	fmt.Println()
 	return accountInfo, err
-	// TODO: Error Handling
 }
 
-func retrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInformation, ssoClient ssoiface.SSOAPI) (*sso.RoleInfo, error) {
+func retrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInformation, ssoClient ssoiface.SSOAPI) *sso.RoleInfo {
 	lari := &sso.ListAccountRolesInput{AccountId: accountInfo.AccountId, AccessToken: &clientInformation.AccessToken}
 	roles, _ := ssoClient.ListAccountRoles(lari)
 
 	if len(roles.RoleList) == 1 {
 		log.Printf("Only one role available. Selected role: %s\n", *roles.RoleList[0].RoleName)
-		return roles.RoleList[0], nil
+		return roles.RoleList[0]
 	}
 
 	for i, info := range roles.RoleList {
@@ -197,11 +221,12 @@ func retrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInfo
 	}
 
 	reader := bufio.NewReader(os.Stdin)
-	strChoice, _ := reader.ReadString('\n')
-	intChoice, _ := strconv.Atoi(strings.ReplaceAll(strChoice, "\n", ""))
+	strChoice, err := reader.ReadString('\n')
+	check(err)
+	intChoice, err := strconv.Atoi(strings.ReplaceAll(strChoice, "\n", ""))
+	check(err)
 	roleInfo := roles.RoleList[intChoice]
-	return roleInfo, nil
-	// TODO: Error Handling
+	return roleInfo
 }
 
 func handleOutdatedAccessToken(clientInformation ClientInformation, oidcClient ssooidciface.SSOOIDCAPI) ClientInformation {
@@ -219,15 +244,18 @@ func generateCreateTokenInput(clientInformation *ClientInformation) ssooidc.Crea
 }
 
 func writeClientInfoToFile(information *ClientInformation, dest string) {
-	file, _ := json.MarshalIndent(information, "", " ")
+	file, err := json.MarshalIndent(information, "", " ")
+	check(err)
 	_ = ioutil.WriteFile(dest, file, 0644)
+	//check(err)
 }
 
 func readClientInformation(file string) (ClientInformation, error) {
 	if isFileExisting(file) {
 		clientInformation := ClientInformation{}
 		content, _ := ioutil.ReadFile(clientInfoFileDestination())
-		_ = json.Unmarshal(content, &clientInformation)
+		err := json.Unmarshal(content, &clientInformation)
+		check(err)
 		return clientInformation, nil
 	}
 	return ClientInformation{}, errors.New("no ClientInformation exists")
@@ -249,7 +277,8 @@ func registerClient(oidc ssooidciface.SSOOIDCAPI) *ClientInformation {
 	ct := clientType
 
 	rci := ssooidc.RegisterClientInput{ClientName: &cn, ClientType: &ct}
-	rco, _ := oidc.RegisterClient(&rci)
+	rco, err := oidc.RegisterClient(&rci)
+	check(err)
 
 	sdao := startDeviceAuthorization(oidc, rco)
 
@@ -265,9 +294,7 @@ func registerClient(oidc ssooidciface.SSOOIDCAPI) *ClientInformation {
 func startDeviceAuthorization(oidc ssooidciface.SSOOIDCAPI, rco *ssooidc.RegisterClientOutput) ssooidc.StartDeviceAuthorizationOutput {
 	startUrl := cliContext.String("start-url")
 	sdao, err := oidc.StartDeviceAuthorization(&ssooidc.StartDeviceAuthorizationInput{ClientId: rco.ClientId, ClientSecret: rco.ClientSecret, StartUrl: &startUrl})
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 	log.Println("Please verify your client request: " + *sdao.VerificationUriComplete)
 	return *sdao
 }
@@ -320,6 +347,6 @@ func initClients() (ssooidciface.SSOOIDCAPI, ssoiface.SSOAPI) {
 
 func check(err error) {
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Something went wrong: %q", err)
 	}
 }
