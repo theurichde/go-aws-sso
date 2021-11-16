@@ -39,7 +39,7 @@ Search:
     #1 Team Sandbox XXXXXXXXXXXX
     #2 Awesome API - Production YYYYYYYYYYYY
 
-2021/11/08 19:34:43 Selected account: Team Sandbox - 217238673132
+2021/11/08 19:34:43 Selected account: Team Sandbox - XXXXXXXXXXXX
 
 2021/11/08 19:34:43 Only one role available. Selected role: AWSAdministratorAccess
 2021/11/08 19:34:43 Credentials expire at: 2021-11-08 20:34:43 +0100 CET
