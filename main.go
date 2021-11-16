@@ -25,7 +25,6 @@ import (
 	"time"
 )
 
-const region = "eu-central-1"
 const grantType = "urn:ietf:params:oauth:grant-type:device_code"
 const clientType = "public"
 const clientName = "go-aws-sso"
@@ -61,7 +60,13 @@ func main() {
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:    "start-url",
 			Aliases: []string{"u"},
-			Usage:   "Set the SSO Login Start Url. (Example: https://my-login.awsapps.com/start#/)",
+			Usage:   "Set the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)",
+		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:    "region",
+			Aliases: []string{"r"},
+			Value:   "eu-central-1",
+			Usage:   "Set the AWS region",
 		}),
 		&cli.StringFlag{
 			Name:        "config",
@@ -77,7 +82,7 @@ func main() {
 		Name:  "go-aws-sso",
 		Usage: "Retrieve short-living credentials via AWS SSO & SSOOIDC",
 		Action: func(context *cli.Context) error {
-			oidcApi, ssoApi := initClients()
+			oidcApi, ssoApi := initClients(context.String("region"))
 			start(oidcApi, ssoApi, context)
 			return nil
 		},
@@ -338,7 +343,7 @@ func (ati ClientInformation) isExpired() bool {
 	return false
 }
 
-func initClients() (ssooidciface.SSOOIDCAPI, ssoiface.SSOAPI) {
+func initClients(region string) (ssooidciface.SSOOIDCAPI, ssoiface.SSOAPI) {
 	sess := session.Must(session.NewSession(&aws.Config{
 		Region:      aws.String(region),
 		Credentials: credentials.AnonymousCredentials},
