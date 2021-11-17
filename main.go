@@ -78,16 +78,45 @@ func main() {
 		},
 	}
 
+	commands := []*cli.Command{
+		{
+			Name:        "generate-config",
+			Usage:       "Generates a config file in the according folder with default values",
+			Description: "description bar",
+			//Value:       homeDir + "/.aws/go-aws-sso-config.yaml",
+			Action: func(context *cli.Context) error {
+				println("generate config called")
+				return nil
+			},
+			ArgsUsage: "arg usage",
+			UsageText: "Usage text gen gen foo foo",
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:     "config-file-path",
+					Aliases:  []string{"f"},
+					Required: true,
+				},
+			},
+		},
+	}
+
 	app := &cli.App{
-		Name:  "go-aws-sso",
-		Usage: "Retrieve short-living credentials via AWS SSO & SSOOIDC",
+		Name:                 "go-aws-sso",
+		Usage:                "Retrieve short-living credentials via AWS SSO & SSOOIDC",
+		EnableBashCompletion: true,
 		Action: func(context *cli.Context) error {
+			if len(context.Args().Slice()) != 0 {
+				fmt.Printf("Command not found: %s\n", context.Args().First())
+				println("Try help or --help for usage")
+				os.Exit(1)
+			}
 			oidcApi, ssoApi := initClients(context.String("region"))
 			start(oidcApi, ssoApi, context)
 			return nil
 		},
-		Flags:  flags,
-		Before: altsrc.InitInputSourceWithContext(flags, altsrc.NewYamlSourceFromFlagFunc("config")),
+		Flags:    flags,
+		Commands: commands,
+		Before:   altsrc.InitInputSourceWithContext(flags, altsrc.NewYamlSourceFromFlagFunc("config")),
 	}
 
 	err := app.Run(os.Args)
@@ -95,6 +124,10 @@ func main() {
 		log.Fatal(err)
 	}
 }
+
+//func writeDefaultConfigFile() error {
+//	os.WriteFile()
+//}
 
 func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context) {
 	cliContext = context
