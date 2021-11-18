@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
+	"github.com/theurichde/go-aws-sso/internal"
 	"github.com/urfave/cli/v2"
 	"io/ioutil"
 	"os"
@@ -53,7 +54,7 @@ func (m mockSSOClient) GetRoleCredentials(*sso.GetRoleCredentialsInput) (*sso.Ge
 }
 
 type mockTime struct {
-	Timer
+	internal.Timer
 }
 
 func (t mockTime) Now() time.Time {
@@ -86,10 +87,10 @@ func TestClientInformation_isExpired(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ati := ClientInformation{
+			ati := internal.ClientInformation{
 				AccessTokenExpiresAt: tt.fields.AccessTokenExpiresAt,
 			}
-			if got := ati.isExpired(); got != tt.want {
+			if got := ati.IsExpired(); got != tt.want {
 				t.Errorf("isExpired() = %v, want %v", got, tt.want)
 			}
 		})
@@ -100,14 +101,14 @@ func Test_retrieveToken(t *testing.T) {
 
 	mockTime := mockTime{}
 	at := "accessToken"
-	want := ClientInformation{AccessToken: at, AccessTokenExpiresAt: mockTime.Now().Add(time.Hour*8 - time.Minute*5)}
+	want := internal.ClientInformation{AccessToken: at, AccessTokenExpiresAt: mockTime.Now().Add(time.Hour*8 - time.Minute*5)}
 
 	t.Run("foobar", func(t *testing.T) {
 		mockClient := mockSSOOIDCClient{CreateTokenOutput: ssooidc.CreateTokenOutput{
 			AccessToken: &at,
 		}}
 
-		got := retrieveToken(mockClient, mockTime, &ClientInformation{})
+		got := internal.RetrieveToken(mockClient, mockTime, &internal.ClientInformation{})
 
 		if !reflect.DeepEqual(*got, want) {
 			t.Errorf("retrieveToken() = got %v, want %v", *got, want)
@@ -150,7 +151,7 @@ func Test_processCredentialsTemplate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := processCredentialsTemplate(tt.args.credentials); !reflect.DeepEqual(got, tt.want) {
+			if got := internal.ProcessCredentialsTemplate(tt.args.credentials); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("processCredentialsTemplate() = %v, want %v", got, tt.want)
 			}
 		})
@@ -161,14 +162,14 @@ func Test_isFileExisting(t *testing.T) {
 
 	tempFile, _ := os.CreateTemp("", "used-for-testing")
 	t.Run("True if file exists", func(t *testing.T) {
-		got := isFileExisting(tempFile.Name())
+		got := internal.IsFileExisting(tempFile.Name())
 		if got != true {
 			t.Errorf("isFileExisting() = %v, want %v", got, true)
 		}
 	})
 
 	t.Run("False if file does not exist", func(t *testing.T) {
-		got := isFileExisting("/tmp/not-existing-file.name")
+		got := internal.IsFileExisting("/tmp/not-existing-file.name")
 		if got != false {
 			t.Errorf("isFileExisting() = %v, want %v", got, true)
 		}
