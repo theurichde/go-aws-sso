@@ -31,7 +31,6 @@ type ClientInformation struct {
 	ClientSecretExpiresAt   string
 	DeviceCode              string
 	VerificationUriComplete string
-	StartUrl                string
 }
 
 type Timer interface {
@@ -57,9 +56,9 @@ func (ati ClientInformation) IsExpired() bool {
 	return false
 }
 
-func HandleOutdatedAccessToken(clientInformation ClientInformation, oidcClient ssooidciface.SSOOIDCAPI) ClientInformation {
+func HandleOutdatedAccessToken(clientInformation ClientInformation, oidcClient ssooidciface.SSOOIDCAPI, startUrl string) ClientInformation {
 	registerClientOutput := ssooidc.RegisterClientOutput{ClientId: &clientInformation.ClientId, ClientSecret: &clientInformation.ClientSecret}
-	clientInformation.DeviceCode = *startDeviceAuthorization(oidcClient, &registerClientOutput, clientInformation.StartUrl).DeviceCode
+	clientInformation.DeviceCode = *startDeviceAuthorization(oidcClient, &registerClientOutput, startUrl).DeviceCode
 	var clientInfoPointer *ClientInformation
 	clientInfoPointer = RetrieveToken(oidcClient, Time{}, &clientInformation)
 	WriteClientInfoToFile(clientInfoPointer, ClientInfoFileDestination())
@@ -87,7 +86,6 @@ func RegisterClient(oidc ssooidciface.SSOOIDCAPI, startUrl string) *ClientInform
 		ClientSecretExpiresAt:   strconv.FormatInt(*rco.ClientSecretExpiresAt, 10),
 		DeviceCode:              *sdao.DeviceCode,
 		VerificationUriComplete: *sdao.VerificationUriComplete,
-		StartUrl:                startUrl,
 	}
 }
 

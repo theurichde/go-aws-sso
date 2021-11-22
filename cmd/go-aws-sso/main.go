@@ -102,7 +102,7 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 		clientInformation = *clientInfoPointer
 	} else if clientInformation.IsExpired() {
 		log.Println("AccessToken expired. Start retrieving a new AccessToken.")
-		clientInformation = HandleOutdatedAccessToken(clientInformation, oidcClient)
+		clientInformation = HandleOutdatedAccessToken(clientInformation, oidcClient, startUrl)
 	}
 
 	// Accounts & Roles

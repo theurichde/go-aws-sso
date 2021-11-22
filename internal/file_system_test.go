@@ -27,7 +27,6 @@ func TestWriteClientInfoToFile(t *testing.T) {
 				ClientSecretExpiresAt:   "dummy",
 				DeviceCode:              "dummy",
 				VerificationUriComplete: "dummy",
-				StartUrl:                "dummy",
 			},
 			dest: createTempFile(),
 		}},

@@ -34,6 +34,8 @@ func writeConfig(filePath string) error {
 	err = os.MkdirAll(base, 0755)
 	check(err)
 
+	// TODO: Handle file rewrite in another, nicer approach
+	_ = os.Remove(filePath)
 	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_RDWR, 0755)
 	check(err)
 
