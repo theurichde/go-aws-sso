@@ -10,33 +10,24 @@ import (
 	"github.com/urfave/cli/v2/altsrc"
 	"log"
 	"os"
+	"strings"
 	"time"
 )
 
 func main() {
 
-	homeDir, _ := os.UserHomeDir()
-
 	flags := []cli.Flag{
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:    "start-url",
 			Aliases: []string{"u"},
-			Usage:   "Set the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)",
+			Usage:   "Set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)",
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:    "region",
 			Aliases: []string{"r"},
 			Value:   "eu-central-1",
-			Usage:   "Set the AWS region",
+			Usage:   "Set / override the AWS region",
 		}),
-		&cli.StringFlag{
-			Name:        "config",
-			Aliases:     []string{"c"},
-			Usage:       "Specify the config file to read from.",
-			DefaultText: "~/.aws/go-aws-sso-config.yaml",
-			Value:       homeDir + "/.aws/go-aws-sso-config.yaml",
-			HasBeenSet:  IsFileExisting(homeDir + "/.aws/go-aws-sso-config.yaml"),
-		},
 	}
 
 	commands := []*cli.Command{
@@ -47,15 +38,8 @@ func main() {
 				{
 					Name:        "generate",
 					Usage:       "Generates a config file with default values",
-					Description: "Generates a config file. All available properties are set with a default value.\nOverrides any existing config file!\nUse --path to specify an alternative config file.\n  Defaults to ${HOME}/.aws/go-aws-sso-config.yaml",
+					Description: "Generates a config file. All available properties are set with a default value.\nOverrides the existing config file!\nDefaults to ${HOME}/.aws/go-aws-sso-config.yaml",
 					Action:      GenerateConfigAction,
-					Flags: []cli.Flag{
-						&cli.StringFlag{
-							Name:    "path",
-							Aliases: []string{"p"},
-							Value:   homeDir + "/.aws/go-aws-sso-config.yaml",
-						},
-					},
 				},
 			},
 		},
@@ -77,12 +61,28 @@ func main() {
 		},
 		Flags:    flags,
 		Commands: commands,
-		Before:   altsrc.InitInputSourceWithContext(flags, altsrc.NewYamlSourceFromFlagFunc("config")),
+		Before:   ReadConfigFile(flags),
 	}
 
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal(err)
+	}
+}
+
+func ReadConfigFile(flags []cli.Flag) cli.BeforeFunc {
+	return func(context *cli.Context) error {
+		inputSource, err := altsrc.NewYamlSourceFromFile(ConfigFilePath())
+		if err != nil {
+			if strings.Contains(err.Error(), "because it does not exist.") {
+				return nil
+			}
+		}
+		if err != nil {
+			return fmt.Errorf("Unable to create input source: inner error: \n'%v'", err.Error())
+		}
+
+		return altsrc.ApplyInputSourceValues(context, inputSource, flags)
 	}
 }
 

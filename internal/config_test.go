@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestGenerateConfigAction(t *testing.T) {
+func TestWriteConfig(t *testing.T) {
 	type args struct {
 		context *cli.Context
 	}
@@ -44,7 +44,7 @@ func TestGenerateConfigAction(t *testing.T) {
 				Region:   "eu-central-1",
 			}
 
-			got := GenerateConfigAction(tt.args.context)
+			got := writeConfig(tempFile)
 			if got != nil {
 				t.Errorf("Not expected: %q", got)
 			}

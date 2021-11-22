@@ -21,15 +21,20 @@ func NewDefaultAppConfig() *AppConfig {
 }
 
 func GenerateConfigAction(context *cli.Context) error {
+	configFile := ConfigFilePath()
+	err := writeConfig(configFile)
+	return err
+}
+
+func writeConfig(filePath string) error {
 	bytes, err := yaml.Marshal(NewDefaultAppConfig())
 	check(err)
 
-	pathFlag := context.String("path")
-	base := path.Dir(pathFlag)
+	base := path.Dir(filePath)
 	err = os.MkdirAll(base, 0755)
 	check(err)
 
-	file, err := os.OpenFile(pathFlag, os.O_CREATE|os.O_RDWR, 0755)
+	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_RDWR, 0755)
 	check(err)
 
 	_, err = file.Write(bytes)
@@ -38,4 +43,10 @@ func GenerateConfigAction(context *cli.Context) error {
 	log.Printf("Config file generated: %s", file.Name())
 
 	return err
+}
+
+func ConfigFilePath() string {
+	homeDir, err := os.UserHomeDir()
+	check(err)
+	return homeDir + "/.aws/go-aws-sso-config.yaml"
 }

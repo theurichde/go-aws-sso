@@ -240,7 +240,7 @@ func Test_start(t *testing.T) {
 	_ = os.Setenv("HOME", "/tmp")
 
 	set := flag.NewFlagSet("start-url", 0)
-	set.String("start-url", "foo", "")
+	set.String("start-url", "ReadConfigFile", "")
 	newContext := cli.NewContext(nil, set, nil)
 
 	// PromptUI Block
