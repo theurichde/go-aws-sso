@@ -26,4 +26,5 @@ jobs:
             ${{ runner.os }}-go-
       - name: Tests
         run: |
-          go test -v
+          go test -v ./..
+          go test -v github.com/theurichde/go-aws-sso/internal
