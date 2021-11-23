@@ -3,6 +3,7 @@ package internal
 import (
 	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -20,7 +21,7 @@ func NewDefaultAppConfig() *AppConfig {
 	}
 }
 
-func GenerateConfigAction(context *cli.Context) error {
+func GenerateConfigAction(_ *cli.Context) error {
 	configFile := ConfigFilePath()
 	err := writeConfig(configFile)
 	return err
@@ -34,15 +35,10 @@ func writeConfig(filePath string) error {
 	err = os.MkdirAll(base, 0755)
 	check(err)
 
-	// TODO: Handle file rewrite in another, nicer approach
-	_ = os.Remove(filePath)
-	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_RDWR, 0755)
+	err = ioutil.WriteFile(filePath, bytes, 0755)
 	check(err)
 
-	_, err = file.Write(bytes)
-	check(err)
-
-	log.Printf("Config file generated: %s", file.Name())
+	log.Printf("Config file generated: %s", filePath)
 
 	return err
 }
