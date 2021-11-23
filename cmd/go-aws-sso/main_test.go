@@ -6,11 +6,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
+	"github.com/manifoldco/promptui"
 	"github.com/theurichde/go-aws-sso/internal"
 	"github.com/urfave/cli/v2"
+	"io"
 	"io/ioutil"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -22,11 +25,11 @@ type mockSSOOIDCClient struct {
 	StartDeviceAuthorizationOutput ssooidc.StartDeviceAuthorizationOutput
 }
 
-func (m mockSSOOIDCClient) CreateToken(in *ssooidc.CreateTokenInput) (*ssooidc.CreateTokenOutput, error) {
+func (m mockSSOOIDCClient) CreateToken(_ *ssooidc.CreateTokenInput) (*ssooidc.CreateTokenOutput, error) {
 	return &m.CreateTokenOutput, nil
 }
 
-func (m mockSSOOIDCClient) StartDeviceAuthorization(in *ssooidc.StartDeviceAuthorizationInput) (*ssooidc.StartDeviceAuthorizationOutput, error) {
+func (m mockSSOOIDCClient) StartDeviceAuthorization(_ *ssooidc.StartDeviceAuthorizationInput) (*ssooidc.StartDeviceAuthorizationOutput, error) {
 	return &m.StartDeviceAuthorizationOutput, nil
 }
 
@@ -41,11 +44,11 @@ type mockSSOClient struct {
 	ListAccountsOutput       sso.ListAccountsOutput
 }
 
-func (m mockSSOClient) ListAccountRoles(in *sso.ListAccountRolesInput) (*sso.ListAccountRolesOutput, error) {
+func (m mockSSOClient) ListAccountRoles(_ *sso.ListAccountRolesInput) (*sso.ListAccountRolesOutput, error) {
 	return &m.ListAccountRolesOutput, nil
 }
 
-func (m mockSSOClient) ListAccounts(in *sso.ListAccountsInput) (*sso.ListAccountsOutput, error) {
+func (m mockSSOClient) ListAccounts(_ *sso.ListAccountsInput) (*sso.ListAccountsOutput, error) {
 	return &m.ListAccountsOutput, nil
 }
 
@@ -178,16 +181,15 @@ func Test_isFileExisting(t *testing.T) {
 
 func Test_start(t *testing.T) {
 
-	// TODO
-	// PromptUI breaks the "Integration Test" for now as it doesn't read from "mocked Stdin"
-	t.Skip()
-
 	dummyInt := int64(132465)
 	dummy := "dummy"
 	accessToken := "AccessToken"
 	accountId := "AccountId"
 	accountName := "AccountName"
 	roleName := "RoleName"
+	accountId2 := "AccountId_2"
+	accountName2 := "AccountName_2"
+	roleName2 := "RoleName_2"
 
 	ssoClient := mockSSOClient{
 		SSOAPI: nil,
@@ -203,6 +205,10 @@ func Test_start(t *testing.T) {
 					AccountId: &accountId,
 					RoleName:  &roleName,
 				},
+				{
+					AccountId: &accountId2,
+					RoleName:  &roleName2,
+				},
 			},
 		},
 		ListAccountsOutput: sso.ListAccountsOutput{
@@ -210,6 +216,10 @@ func Test_start(t *testing.T) {
 				{
 					AccountId:   &accountId,
 					AccountName: &accountName,
+				},
+				{
+					AccountId:   &accountId2,
+					AccountName: &accountName2,
 				},
 			},
 		},
@@ -243,18 +253,9 @@ func Test_start(t *testing.T) {
 	set.String("start-url", "ReadConfigFile", "")
 	newContext := cli.NewContext(nil, set, nil)
 
-	// PromptUI Block
-	stdinContent := []byte("#0")
-	//stdinContent := []byte("\x0D")
-	tmpFile, _ := ioutil.TempFile("", "stdin")
-	defer os.Remove(tmpFile.Name())
-	tmpFile.Write(stdinContent)
-	tmpFile.Seek(0, 0)
-	oldStdin := os.Stdin
-	defer func() { os.Stdin = oldStdin }()
-	os.Stdin = tmpFile
+	selector := mockPromptUISelector{}
 
-	start(oidcClient, ssoClient, newContext)
+	start(oidcClient, ssoClient, newContext, selector)
 
 	homeDir, _ := os.UserHomeDir()
 	content, _ := ioutil.ReadFile(homeDir + "/.aws/credentials")
@@ -265,5 +266,33 @@ func Test_start(t *testing.T) {
 		t.Errorf("Got: %v, but wanted: %v", got, want)
 	}
 
-	tmpFile.Close()
+}
+
+type mockPromptUISelector struct {
+}
+
+func (receiver mockPromptUISelector) Select(label string, toSelect []string, linePrefix string) promptui.Select {
+	return promptui.Select{
+		Label:             label,
+		Items:             toSelect,
+		Size:              20,
+		Searcher:          mockSearch(toSelect, linePrefix),
+		StartInSearchMode: true,
+		Stdin:             io.NopCloser(strings.NewReader("#0\n")),
+	}
+}
+
+func mockSearch(itemsToSelect []string, linePrefix string) func(input string, index int) bool {
+	return func(input string, index int) bool {
+		role := itemsToSelect[index]
+
+		if strings.HasPrefix(input, linePrefix) {
+			if strings.HasPrefix(role, input) {
+				return true
+			} else {
+				return false
+			}
+		}
+		return false
+	}
 }

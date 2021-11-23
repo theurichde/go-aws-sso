@@ -44,6 +44,23 @@ func (i Time) Now() time.Time {
 	return time.Now()
 }
 
+type Selector interface {
+	Select(label string, toSelect []string, linePrefix string) promptui.Select
+}
+
+type PromptUISelector struct {
+}
+
+func (receiver PromptUISelector) Select(label string, toSelect []string, linePrefix string) promptui.Select {
+	return promptui.Select{
+		Label:             label,
+		Items:             toSelect,
+		Size:              20,
+		Searcher:          fuzzySearchWithPrefixAnchor(toSelect, linePrefix),
+		StartInSearchMode: true,
+	}
+}
+
 func ClientInfoFileDestination() string {
 	homeDir, _ := os.UserHomeDir()
 	return homeDir + "/.aws/sso/cache/access-token.json"
@@ -130,7 +147,7 @@ func InitClients(region string) (ssooidciface.SSOOIDCAPI, ssoiface.SSOAPI) {
 	return oidcClient, ssoClient
 }
 
-func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInformation, ssoClient ssoiface.SSOAPI) *sso.RoleInfo {
+func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInformation, ssoClient ssoiface.SSOAPI, selector Selector) *sso.RoleInfo {
 	lari := &sso.ListAccountRolesInput{AccountId: accountInfo.AccountId, AccessToken: &clientInformation.AccessToken}
 	roles, _ := ssoClient.ListAccountRoles(lari)
 
@@ -141,13 +158,8 @@ func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInfo
 		rolesToSelect = append(rolesToSelect, linePrefix+strconv.Itoa(i)+" "+*info.RoleName)
 	}
 
-	prompt := promptui.Select{
-		Label:             "Select your role - Hint: fuzzy search supported. To choose one role directly just enter #{Int}",
-		Items:             rolesToSelect,
-		Size:              20,
-		Searcher:          fuzzySearchWithPrefixAnchor(rolesToSelect, linePrefix),
-		StartInSearchMode: true,
-	}
+	label := "Select your role - Hint: fuzzy search supported. To choose one role directly just enter #{Int}"
+	prompt := selector.Select(label, rolesToSelect, linePrefix)
 
 	if len(roles.RoleList) == 1 {
 		log.Printf("Only one role available. Selected role: %s\n", *roles.RoleList[0].RoleName)
@@ -161,7 +173,7 @@ func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInfo
 	return roleInfo
 }
 
-func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface.SSOAPI) (*sso.AccountInfo, error) {
+func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface.SSOAPI, selector Selector) (*sso.AccountInfo, error) {
 	lai := sso.ListAccountsInput{AccessToken: &clientInformation.AccessToken}
 	accounts, _ := ssoClient.ListAccounts(&lai)
 
@@ -172,13 +184,8 @@ func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface
 		accountsToSelect = append(accountsToSelect, linePrefix+strconv.Itoa(i)+" "+*info.AccountName+" "+*info.AccountId)
 	}
 
-	prompt := promptui.Select{
-		Label:             "Select your account - Hint: fuzzy search supported. To choose one account directly just enter #{Int}",
-		Items:             accountsToSelect,
-		Size:              20,
-		Searcher:          fuzzySearchWithPrefixAnchor(accountsToSelect, linePrefix),
-		StartInSearchMode: true,
-	}
+	label := "Select your account - Hint: fuzzy search supported. To choose one account directly just enter #{Int}"
+	prompt := selector.Select(label, accountsToSelect, linePrefix)
 
 	indexChoice, _, err := prompt.Run()
 	check(err)

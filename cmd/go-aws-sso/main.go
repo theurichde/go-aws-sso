@@ -56,7 +56,8 @@ func main() {
 				os.Exit(1)
 			}
 			oidcApi, ssoApi := InitClients(context.String("region"))
-			start(oidcApi, ssoApi, context)
+			promptSelector := PromptUISelector{}
+			start(oidcApi, ssoApi, context, promptSelector)
 			return nil
 		},
 		Flags:    flags,
@@ -86,7 +87,7 @@ func ReadConfigFile(flags []cli.Flag) cli.BeforeFunc {
 	}
 }
 
-func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context) {
+func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context, promptSelector Selector) {
 
 	startUrl := context.String("start-url")
 	if startUrl == "" {
@@ -106,8 +107,8 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 	}
 
 	// Accounts & Roles
-	accountInfo, _ := RetrieveAccountInfo(clientInformation, ssoClient)
-	roleInfo := RetrieveRoleInfo(accountInfo, clientInformation, ssoClient)
+	accountInfo, _ := RetrieveAccountInfo(clientInformation, ssoClient, promptSelector)
+	roleInfo := RetrieveRoleInfo(accountInfo, clientInformation, ssoClient, promptSelector)
 
 	rci := &sso.GetRoleCredentialsInput{AccountId: accountInfo.AccountId, RoleName: roleInfo.RoleName, AccessToken: &clientInformation.AccessToken}
 	roleCredentials, err := ssoClient.GetRoleCredentials(rci)
