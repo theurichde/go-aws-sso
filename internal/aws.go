@@ -10,18 +10,41 @@ import (
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
-	"github.com/lithammer/fuzzysearch/fuzzy"
-	"github.com/manifoldco/promptui"
 	"log"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 )
 
 const grantType = "urn:ietf:params:oauth:grant-type:device_code"
 const clientType = "public"
 const clientName = "go-aws-sso"
+
+var AwsRegions = []string{
+	"us-east-2",
+	"us-east-1",
+	"us-west-1",
+	"us-west-2",
+	"af-south-1",
+	"ap-east-1",
+	"ap-south-1",
+	"ap-northeast-3",
+	"ap-northeast-2",
+	"ap-southeast-1",
+	"ap-southeast-2",
+	"ap-northeast-1",
+	"ca-central-1",
+	"eu-central-1",
+	"eu-west-1",
+	"eu-west-2",
+	"eu-south-1",
+	"eu-west-3",
+	"eu-north-1",
+	"me-south-1",
+	"sa-east-1",
+	"us-gov-east-1",
+	"us-gov-west-1",
+}
 
 type ClientInformation struct {
 	AccessTokenExpiresAt    time.Time
@@ -42,23 +65,6 @@ type Time struct {
 
 func (i Time) Now() time.Time {
 	return time.Now()
-}
-
-type Selector interface {
-	Select(label string, toSelect []string, linePrefix string) promptui.Select
-}
-
-type PromptUISelector struct {
-}
-
-func (receiver PromptUISelector) Select(label string, toSelect []string, linePrefix string) promptui.Select {
-	return promptui.Select{
-		Label:             label,
-		Items:             toSelect,
-		Size:              20,
-		Searcher:          fuzzySearchWithPrefixAnchor(toSelect, linePrefix),
-		StartInSearchMode: true,
-	}
 }
 
 func ClientInfoFileDestination() string {
@@ -147,7 +153,7 @@ func InitClients(region string) (ssooidciface.SSOOIDCAPI, ssoiface.SSOAPI) {
 	return oidcClient, ssoClient
 }
 
-func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInformation, ssoClient ssoiface.SSOAPI, selector Selector) *sso.RoleInfo {
+func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInformation, ssoClient ssoiface.SSOAPI, selector Prompt) *sso.RoleInfo {
 	lari := &sso.ListAccountRolesInput{AccountId: accountInfo.AccountId, AccessToken: &clientInformation.AccessToken}
 	roles, _ := ssoClient.ListAccountRoles(lari)
 
@@ -159,7 +165,7 @@ func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInfo
 	}
 
 	label := "Select your role - Hint: fuzzy search supported. To choose one role directly just enter #{Int}"
-	prompt := selector.Select(label, rolesToSelect, linePrefix)
+	prompt := selector.Select(label, rolesToSelect, fuzzySearchWithPrefixAnchor(rolesToSelect, linePrefix))
 
 	if len(roles.RoleList) == 1 {
 		log.Printf("Only one role available. Selected role: %s\n", *roles.RoleList[0].RoleName)
@@ -173,7 +179,7 @@ func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInfo
 	return roleInfo
 }
 
-func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface.SSOAPI, selector Selector) (*sso.AccountInfo, error) {
+func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface.SSOAPI, selector Prompt) (*sso.AccountInfo, error) {
 	lai := sso.ListAccountsInput{AccessToken: &clientInformation.AccessToken}
 	accounts, _ := ssoClient.ListAccounts(&lai)
 
@@ -185,7 +191,7 @@ func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface
 	}
 
 	label := "Select your account - Hint: fuzzy search supported. To choose one account directly just enter #{Int}"
-	prompt := selector.Select(label, accountsToSelect, linePrefix)
+	prompt := selector.Select(label, accountsToSelect, fuzzySearchWithPrefixAnchor(accountsToSelect, linePrefix))
 
 	indexChoice, _, err := prompt.Run()
 	check(err)
@@ -197,23 +203,4 @@ func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface
 	log.Printf("Selected account: %s - %s", *accountInfo.AccountName, *accountInfo.AccountId)
 	fmt.Println()
 	return accountInfo, err
-}
-
-func fuzzySearchWithPrefixAnchor(itemsToSelect []string, linePrefix string) func(input string, index int) bool {
-	return func(input string, index int) bool {
-		role := itemsToSelect[index]
-
-		if strings.HasPrefix(input, linePrefix) {
-			if strings.HasPrefix(role, input) {
-				return true
-			} else {
-				return false
-			}
-		} else {
-			if fuzzy.MatchFold(input, role) {
-				return true
-			}
-		}
-		return false
-	}
 }

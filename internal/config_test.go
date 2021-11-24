@@ -44,7 +44,7 @@ func TestWriteConfig(t *testing.T) {
 				Region:   "eu-central-1",
 			}
 
-			got := writeConfig(tempFile)
+			got := writeConfig(tempFile, wantAppConfig)
 			if got != nil {
 				t.Errorf("Not expected: %q", got)
 			}

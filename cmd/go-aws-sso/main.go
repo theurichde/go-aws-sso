@@ -37,8 +37,8 @@ func main() {
 			Subcommands: []*cli.Command{
 				{
 					Name:        "generate",
-					Usage:       "Generates a config file with default values",
-					Description: "Generates a config file. All available properties are set with a default value.\nOverrides the existing config file!\nDefaults to ${HOME}/.aws/go-aws-sso-config.yaml",
+					Usage:       "Generate a config file",
+					Description: "Generates a config file. All available properties are interactively prompted.\nOverrides the existing config file!\nLocation defaults to ${HOME}/.aws/go-aws-sso-config.yaml",
 					Action:      GenerateConfigAction,
 				},
 			},
@@ -56,7 +56,7 @@ func main() {
 				os.Exit(1)
 			}
 			oidcApi, ssoApi := InitClients(context.String("region"))
-			promptSelector := PromptUISelector{}
+			promptSelector := Prompter{}
 			start(oidcApi, ssoApi, context, promptSelector)
 			return nil
 		},
@@ -87,7 +87,7 @@ func ReadConfigFile(flags []cli.Flag) cli.BeforeFunc {
 	}
 }
 
-func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context, promptSelector Selector) {
+func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context, promptSelector Prompt) {
 
 	startUrl := context.String("start-url")
 	if startUrl == "" {

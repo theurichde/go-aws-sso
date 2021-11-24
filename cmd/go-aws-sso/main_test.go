@@ -271,15 +271,19 @@ func Test_start(t *testing.T) {
 type mockPromptUISelector struct {
 }
 
-func (receiver mockPromptUISelector) Select(label string, toSelect []string, linePrefix string) promptui.Select {
+func (receiver mockPromptUISelector) Select(label string, toSelect []string, searcher func(input string, index int) bool) promptui.Select {
 	return promptui.Select{
 		Label:             label,
 		Items:             toSelect,
 		Size:              20,
-		Searcher:          mockSearch(toSelect, linePrefix),
+		Searcher:          mockSearch(toSelect, "#"),
 		StartInSearchMode: true,
 		Stdin:             io.NopCloser(strings.NewReader("#0\n")),
 	}
+}
+
+func (receiver mockPromptUISelector) Prompt(label string, def string) string {
+	return ""
 }
 
 func mockSearch(itemsToSelect []string, linePrefix string) func(input string, index int) bool {
