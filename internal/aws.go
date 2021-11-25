@@ -157,6 +157,11 @@ func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInfo
 	lari := &sso.ListAccountRolesInput{AccountId: accountInfo.AccountId, AccessToken: &clientInformation.AccessToken}
 	roles, _ := ssoClient.ListAccountRoles(lari)
 
+	if len(roles.RoleList) == 1 {
+		log.Printf("Only one role available. Selected role: %s\n", *roles.RoleList[0].RoleName)
+		return roles.RoleList[0]
+	}
+
 	var rolesToSelect []string
 	linePrefix := "#"
 
@@ -165,21 +170,12 @@ func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInfo
 	}
 
 	label := "Select your role - Hint: fuzzy search supported. To choose one role directly just enter #{Int}"
-	prompt := selector.Select(label, rolesToSelect, fuzzySearchWithPrefixAnchor(rolesToSelect, linePrefix))
-
-	if len(roles.RoleList) == 1 {
-		log.Printf("Only one role available. Selected role: %s\n", *roles.RoleList[0].RoleName)
-		return roles.RoleList[0]
-	}
-
-	indexChoice, _, err := prompt.Run()
-	check(err)
-
+	indexChoice, _ := selector.Select(label, rolesToSelect, fuzzySearchWithPrefixAnchor(rolesToSelect, linePrefix))
 	roleInfo := roles.RoleList[indexChoice]
 	return roleInfo
 }
 
-func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface.SSOAPI, selector Prompt) (*sso.AccountInfo, error) {
+func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface.SSOAPI, selector Prompt) *sso.AccountInfo {
 	lai := sso.ListAccountsInput{AccessToken: &clientInformation.AccessToken}
 	accounts, _ := ssoClient.ListAccounts(&lai)
 
@@ -191,10 +187,7 @@ func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface
 	}
 
 	label := "Select your account - Hint: fuzzy search supported. To choose one account directly just enter #{Int}"
-	prompt := selector.Select(label, accountsToSelect, fuzzySearchWithPrefixAnchor(accountsToSelect, linePrefix))
-
-	indexChoice, _, err := prompt.Run()
-	check(err)
+	indexChoice, _ := selector.Select(label, accountsToSelect, fuzzySearchWithPrefixAnchor(accountsToSelect, linePrefix))
 
 	fmt.Println()
 
@@ -202,5 +195,5 @@ func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface
 
 	log.Printf("Selected account: %s - %s", *accountInfo.AccountName, *accountInfo.AccountId)
 	fmt.Println()
-	return accountInfo, err
+	return accountInfo
 }

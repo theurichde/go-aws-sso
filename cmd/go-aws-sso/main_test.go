@@ -6,14 +6,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
-	"github.com/manifoldco/promptui"
 	"github.com/theurichde/go-aws-sso/internal"
 	"github.com/urfave/cli/v2"
-	"io"
 	"io/ioutil"
 	"os"
 	"reflect"
-	"strings"
 	"testing"
 	"time"
 )
@@ -271,32 +268,10 @@ func Test_start(t *testing.T) {
 type mockPromptUISelector struct {
 }
 
-func (receiver mockPromptUISelector) Select(label string, toSelect []string, searcher func(input string, index int) bool) promptui.Select {
-	return promptui.Select{
-		Label:             label,
-		Items:             toSelect,
-		Size:              20,
-		Searcher:          mockSearch(toSelect, "#"),
-		StartInSearchMode: true,
-		Stdin:             io.NopCloser(strings.NewReader("#0\n")),
-	}
+func (receiver mockPromptUISelector) Select(_ string, _ []string, _ func(input string, index int) bool) (int, string) {
+	return 0, ""
 }
 
-func (receiver mockPromptUISelector) Prompt(label string, def string) string {
+func (receiver mockPromptUISelector) Prompt(_ string, _ string) string {
 	return ""
-}
-
-func mockSearch(itemsToSelect []string, linePrefix string) func(input string, index int) bool {
-	return func(input string, index int) bool {
-		role := itemsToSelect[index]
-
-		if strings.HasPrefix(input, linePrefix) {
-			if strings.HasPrefix(role, input) {
-				return true
-			} else {
-				return false
-			}
-		}
-		return false
-	}
 }

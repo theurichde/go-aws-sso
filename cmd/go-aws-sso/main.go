@@ -33,13 +33,19 @@ func main() {
 	commands := []*cli.Command{
 		{
 			Name:  "config",
-			Usage: "Handles configuration",
+			Usage: "Handles configuration. Note: Config location defaults to ${HOME}/.aws/go-aws-sso-config.yaml",
 			Subcommands: []*cli.Command{
 				{
 					Name:        "generate",
 					Usage:       "Generate a config file",
-					Description: "Generates a config file. All available properties are interactively prompted.\nOverrides the existing config file!\nLocation defaults to ${HOME}/.aws/go-aws-sso-config.yaml",
+					Description: "Generates a config file. All available properties are interactively prompted.\nOverrides the existing config file!",
 					Action:      GenerateConfigAction,
+				},
+				{
+					Name:        "edit",
+					Usage:       "Edit the config file",
+					Description: "Edit the config file. All available properties are interactively prompted.\nOverrides the existing config file!",
+					Action:      EditConfigAction,
 				},
 			},
 		},
@@ -56,8 +62,7 @@ func main() {
 				os.Exit(1)
 			}
 			oidcApi, ssoApi := InitClients(context.String("region"))
-			promptSelector := Prompter{}
-			start(oidcApi, ssoApi, context, promptSelector)
+			start(oidcApi, ssoApi, context, Prompter{})
 			return nil
 		},
 		Flags:    flags,
@@ -91,7 +96,8 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 
 	startUrl := context.String("start-url")
 	if startUrl == "" {
-		log.Fatal("SSO start URL is not set.\nPlease use --start-url or set it via config file (see go-aws-sso config --help)")
+		err := GenerateConfigAction(context)
+		check(err)
 	}
 
 	clientInformation, err := ReadClientInformation(ClientInfoFileDestination())
@@ -106,8 +112,7 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 		clientInformation = HandleOutdatedAccessToken(clientInformation, oidcClient, startUrl)
 	}
 
-	// Accounts & Roles
-	accountInfo, _ := RetrieveAccountInfo(clientInformation, ssoClient, promptSelector)
+	accountInfo := RetrieveAccountInfo(clientInformation, ssoClient, promptSelector)
 	roleInfo := RetrieveRoleInfo(accountInfo, clientInformation, ssoClient, promptSelector)
 
 	rci := &sso.GetRoleCredentialsInput{AccountId: accountInfo.AccountId, RoleName: roleInfo.RoleName, AccessToken: &clientInformation.AccessToken}

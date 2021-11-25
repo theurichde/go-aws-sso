@@ -7,27 +7,30 @@ import (
 )
 
 type Prompt interface {
-	Select(label string, toSelect []string, searcher func(input string, index int) bool) promptui.Select
-	Prompt(label string, def string) string
+	Select(label string, toSelect []string, searcher func(input string, index int) bool) (index int, value string)
+	Prompt(label string, dfault string) string
 }
 
 type Prompter struct {
 }
 
-func (receiver Prompter) Select(label string, toSelect []string, searcher func(input string, index int) bool) promptui.Select {
-	return promptui.Select{
+func (receiver Prompter) Select(label string, toSelect []string, searcher func(input string, index int) bool) (int, string) {
+	prompt := promptui.Select{
 		Label:             label,
 		Items:             toSelect,
 		Size:              20,
 		Searcher:          searcher,
 		StartInSearchMode: true,
 	}
+	index, value, err := prompt.Run()
+	check(err)
+	return index, value
 }
 
-func (receiver Prompter) Prompt(label string, def string) string {
+func (receiver Prompter) Prompt(label string, dfault string) string {
 	prompt := promptui.Prompt{
 		Label:     label,
-		Default:   def,
+		Default:   dfault,
 		AllowEdit: false,
 	}
 	val, err := prompt.Run()
