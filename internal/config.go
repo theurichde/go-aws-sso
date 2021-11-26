@@ -20,7 +20,7 @@ func promptStartUrl(prompt Prompt, dfault string) string {
 }
 
 func promptRegion(prompt Prompt) string {
-	_, region := prompt.Select("AWS Region", AwsRegions, func(input string, index int) bool {
+	_, region := prompt.Select("Select your AWS Region. Hint: FuzzySearch supported", AwsRegions, func(input string, index int) bool {
 		target := AwsRegions[index]
 		return fuzzy.MatchFold(input, target)
 	})

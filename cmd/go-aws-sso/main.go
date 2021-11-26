@@ -96,6 +96,7 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 
 	startUrl := context.String("start-url")
 	if startUrl == "" {
+		log.Println("No Start URL given. Please set it now.")
 		err := GenerateConfigAction(context)
 		check(err)
 	}
