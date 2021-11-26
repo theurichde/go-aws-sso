@@ -1,0 +1,14 @@
+# .goreleaser.yml
+project_name: go-aws-sso
+builds:
+  - env: [CGO_ENABLED=0]
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    id: "go-aws-sso"
+    dir: .
+    main: ./cmd/go-aws-sso
