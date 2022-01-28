@@ -44,7 +44,7 @@ func GenerateConfigAction(_ *cli.Context) error {
 
 func EditConfigAction(_ *cli.Context) error {
 
-	config := readConfig(ConfigFilePath())
+	config := ReadConfig(ConfigFilePath())
 
 	prompter := Prompter{}
 	config.StartUrl = promptStartUrl(prompter, config.StartUrl)
@@ -56,7 +56,7 @@ func EditConfigAction(_ *cli.Context) error {
 
 }
 
-func readConfig(filePath string) *AppConfig {
+func ReadConfig(filePath string) *AppConfig {
 
 	bytes, err := ioutil.ReadFile(filePath)
 	check(err)

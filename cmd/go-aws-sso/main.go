@@ -25,7 +25,6 @@ func main() {
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:    "region",
 			Aliases: []string{"r"},
-			Value:   "eu-central-1",
 			Usage:   "Set / override the AWS region",
 		}),
 	}
@@ -56,11 +55,15 @@ func main() {
 		Usage:                "Retrieve short-living credentials via AWS SSO & SSOOIDC",
 		EnableBashCompletion: true,
 		Action: func(context *cli.Context) error {
+
 			if len(context.Args().Slice()) != 0 {
 				fmt.Printf("Command not found: %s\n", context.Args().First())
 				println("Try help or --help for usage")
 				os.Exit(1)
 			}
+
+			checkMandatoryFlags(context)
+
 			oidcApi, ssoApi := InitClients(context.String("region"))
 			start(oidcApi, ssoApi, context, Prompter{})
 			return nil
@@ -95,11 +98,6 @@ func ReadConfigFile(flags []cli.Flag) cli.BeforeFunc {
 func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context, promptSelector Prompt) {
 
 	startUrl := context.String("start-url")
-	if startUrl == "" {
-		log.Println("No Start URL given. Please set it now.")
-		err := GenerateConfigAction(context)
-		check(err)
-	}
 
 	clientInformation, err := ReadClientInformation(ClientInfoFileDestination())
 	if err != nil {
@@ -130,5 +128,18 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 func check(err error) {
 	if err != nil {
 		log.Fatalf("Something went wrong: %q", err)
+	}
+}
+
+func checkMandatoryFlags(context *cli.Context) {
+	if context.String("start-url") == "" || context.String("region") == "" {
+		log.Println("No Start URL given. Please set it now.")
+		err := GenerateConfigAction(context)
+		check(err)
+		appConfig := ReadConfig(ConfigFilePath())
+		err = context.Set("start-url", appConfig.StartUrl)
+		check(err)
+		err = context.Set("region", appConfig.Region)
+		check(err)
 	}
 }
