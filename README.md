@@ -66,8 +66,7 @@ Search:
 ```
 ---
 ### Installation
-* Use `go install github.com/theurichde/go-aws-sso`
-* Download the according binary
+* Download the according binary from the [releases page](https://github.com/theurichde/go-aws-sso/releases)
 * Compile from source 
 
 ### Usage
