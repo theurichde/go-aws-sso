@@ -14,60 +14,11 @@ Make working with AWS SSO on local machines an ease.
 
 ## Getting Started
 
-```
-$ go-aws-sso help  
-NAME:
-   go-aws-sso - Retrieve short-living credentials via AWS SSO & SSOOIDC
-
-USAGE:
-   go-aws-sso [global options] command [command options] [arguments...]
-
-COMMANDS:
-   config   Handles configuration
-   help, h  Shows a list of commands or help for one command
-
-GLOBAL OPTIONS:
-   --start-url value, -u value  Set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)
-   --region value, -r value     Set / override the AWS region (default: "eu-central-1")
-   --help, -h                   show help (default: false)
-```
-
----
-```
-./go-aws-sso
-
-2021/11/08 19:34:40 No Start URL given. Please set it now.
-✔ SSO Start URL: https://my-sso-login.awsapps.com
-Search: █
-? Select your AWS Region. Hint: FuzzySearch supported: 
-  ▸ us-east-2
-    us-east-1
-    us-west-1
-    us-west-2
-    af-south-1
-    ap-east-1
-    ap-south-1
-    ap-northeast-3
-    ap-northeast-2
-    [...]
-2021/11/08 19:34:40 Config file generated: /home/theurichde/.aws/go-aws-sso-config.yaml
-2021/11/08 19:34:40 Please verify your client request: https://device.sso.eu-central-1.amazonaws.com/?user_code=USR-CDE
-2021/11/08 19:34:40 Still waiting for authorization...
-Search: 
-? Select your account - Hint: fuzzy search supported. To choose one account directly just enter #{Int}: 
-  ▸ #0 Awesome API - SDLC YYYYYXXXXXXX
-    #1 Team Sandbox XXXXXXXXXXXX
-    #2 Awesome API - Production YYYYYYYYYYYY
-
-2021/11/08 19:34:43 Selected account: Team Sandbox - XXXXXXXXXXXX
-
-2021/11/08 19:34:43 Only one role available. Selected role: AWSAdministratorAccess
-2021/11/08 19:34:43 Credentials expire at: 2021-11-08 20:34:43 +0100 CET
-```
----
 ### Installation
-* Download the according binary from the [releases page](https://github.com/theurichde/go-aws-sso/releases)
-* Compile from source 
+* a) Download your according target platform binary from the [releases page](https://github.com/theurichde/go-aws-sso/releases)
+* b) Compile from source with `go build -v ./cmd/go-aws-sso`
+* c) use `go install github.com/theurichde/go-aws-sso/cmd/go-aws-sso@main`
+  * Maybe you want to make sure your GOBIN is in your PATH 😉
 
 ### Usage
 * Just execute `go-aws-sso`
@@ -131,6 +82,66 @@ OPTIONS:
      --help, -h  show help (default: false)
   ```
 
+### Example Usage
+```
+$ go-aws-sso help  
+NAME:
+   go-aws-sso - Retrieve short-living credentials via AWS SSO & SSOOIDC
+
+USAGE:
+   go-aws-sso [global options] command [command options] [arguments...]
+
+COMMANDS:
+   config   Handles configuration
+   help, h  Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --start-url value, -u value  Set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)
+   --region value, -r value     Set / override the AWS region (default: "eu-central-1")
+   --help, -h                   show help (default: false)
+```
+
+---
+```
+./go-aws-sso
+
+2021/11/08 19:34:40 No Start URL given. Please set it now.
+✔ SSO Start URL: https://my-sso-login.awsapps.com
+Search: █
+? Select your AWS Region. Hint: FuzzySearch supported: 
+  ▸ us-east-2
+    us-east-1
+    us-west-1
+    us-west-2
+    af-south-1
+    ap-east-1
+    ap-south-1
+    ap-northeast-3
+    ap-northeast-2
+    [...]
+2021/11/08 19:34:40 Config file generated: /home/theurichde/.aws/go-aws-sso-config.yaml
+2021/11/08 19:34:40 Please verify your client request: https://device.sso.eu-central-1.amazonaws.com/?user_code=USR-CDE
+2021/11/08 19:34:40 Still waiting for authorization...
+Search: 
+? Select your account - Hint: fuzzy search supported. To choose one account directly just enter #{Int}: 
+  ▸ #0 Awesome API - SDLC YYYYYXXXXXXX
+    #1 Team Sandbox XXXXXXXXXXXX
+    #2 Awesome API - Production YYYYYYYYYYYY
+
+2021/11/08 19:34:43 Selected account: Team Sandbox - XXXXXXXXXXXX
+
+2021/11/08 19:34:43 Only one role available. Selected role: AWSAdministratorAccess
+2021/11/08 19:34:43 Credentials expire at: 2021-11-08 20:34:43 +0100 CET
+```
+---
+
+## Contributions
+
+*Contributions are highly welcome!*
+
+* Feel free to contribute enhancements or bug fixes. 
+  * Fork this repo, apply your changes and create a PR pointing to this repo and the develop branch
+* If you have any ideas or suggestions please open an issue and describe your idea or feature request
 
 ## License
 
