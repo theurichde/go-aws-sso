@@ -30,9 +30,23 @@ func TestWriteClientInfoToFile(t *testing.T) {
 			},
 			dest: createTempFile(),
 		}},
+		{name: "Should write client info to file even when the parent folder doesn't exist", args: args{
+			information: &ClientInformation{
+				AccessTokenExpiresAt:    time.Time{},
+				AccessToken:             "dummy",
+				ClientId:                "dummy",
+				ClientSecret:            "dummy",
+				ClientSecretExpiresAt:   "dummy",
+				DeviceCode:              "dummy",
+				VerificationUriComplete: "dummy",
+			},
+			dest: createTempFolder() + "/non-existent/token.json",
+		}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
+			defer os.RemoveAll(tt.args.dest)
 
 			WriteClientInfoToFile(tt.args.information, tt.args.dest)
 
@@ -54,6 +68,12 @@ func TestWriteClientInfoToFile(t *testing.T) {
 			}
 		})
 	}
+}
+
+func createTempFolder() string {
+	temp, err := os.MkdirTemp("", "write-client-info-test")
+	check(err)
+	return temp
 }
 
 func createTempFile() string {
