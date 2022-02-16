@@ -8,6 +8,7 @@ import (
 	"github.com/valyala/fasttemplate"
 	"io/ioutil"
 	"os"
+	"path"
 )
 
 func ProcessCredentialsTemplate(credentials *sso.GetRoleCredentialsOutput) string {
@@ -33,7 +34,7 @@ func WriteAWSCredentialsFile(template string) {
 	check(err)
 
 	credentialsFile := homeDir + "/.aws/credentials"
-	if !IsFileExisting(credentialsFile) {
+	if !IsFileOrFolderExisting(credentialsFile) {
 		err = os.MkdirAll(homeDir+"/.aws", 0777)
 		check(err)
 		_, err = os.OpenFile(credentialsFile, os.O_CREATE, 0644)
@@ -43,25 +44,30 @@ func WriteAWSCredentialsFile(template string) {
 	check(err)
 }
 
-func IsFileExisting(file string) bool {
-	if _, err := os.Stat(file); err == nil {
+func IsFileOrFolderExisting(target string) bool {
+	if _, err := os.Stat(target); err == nil {
 		return true
 	} else if os.IsNotExist(err) {
 		return false
 	} else {
-		message := fmt.Sprintf("Could not determine is file %q exists or not. Exiting.", file)
+		message := fmt.Sprintf("Could not determine if file or folder %q exists or not. Exiting.", target)
 		panic(message)
 	}
 }
 
 func WriteClientInfoToFile(information *ClientInformation, dest string) {
+	targetDir := path.Dir(dest)
+	if !IsFileOrFolderExisting(targetDir) {
+		err := os.MkdirAll(targetDir, 0700)
+		check(err)
+	}
 	file, err := json.MarshalIndent(information, "", " ")
 	check(err)
-	_ = ioutil.WriteFile(dest, file, 0644)
+	_ = ioutil.WriteFile(dest, file, 0600)
 }
 
 func ReadClientInformation(file string) (ClientInformation, error) {
-	if IsFileExisting(file) {
+	if IsFileOrFolderExisting(file) {
 		clientInformation := ClientInformation{}
 		content, _ := ioutil.ReadFile(ClientInfoFileDestination())
 		err := json.Unmarshal(content, &clientInformation)
