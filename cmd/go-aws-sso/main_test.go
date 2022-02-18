@@ -162,14 +162,14 @@ func Test_isFileExisting(t *testing.T) {
 
 	tempFile, _ := os.CreateTemp("", "used-for-testing")
 	t.Run("True if file exists", func(t *testing.T) {
-		got := internal.IsFileExisting(tempFile.Name())
+		got := internal.IsFileOrFolderExisting(tempFile.Name())
 		if got != true {
 			t.Errorf("isFileExisting() = %v, want %v", got, true)
 		}
 	})
 
 	t.Run("False if file does not exist", func(t *testing.T) {
-		got := internal.IsFileExisting("/tmp/not-existing-file.name")
+		got := internal.IsFileOrFolderExisting("/tmp/not-existing-file.name")
 		if got != false {
 			t.Errorf("isFileExisting() = %v, want %v", got, true)
 		}
@@ -246,9 +246,9 @@ func Test_start(t *testing.T) {
 
 	_ = os.Setenv("HOME", "/tmp")
 
-	set := flag.NewFlagSet("start-url", 0)
-	set.String("start-url", "ReadConfigFile", "")
-	newContext := cli.NewContext(nil, set, nil)
+	flagSet := flag.NewFlagSet("start-url", 0)
+	flagSet.String("start-url", "ReadConfigFile", "")
+	newContext := cli.NewContext(nil, flagSet, nil)
 
 	selector := mockPromptUISelector{}
 

@@ -55,17 +55,6 @@ func IsFileOrFolderExisting(target string) bool {
 	}
 }
 
-func WriteClientInfoToFile(information *ClientInformation, dest string) {
-	targetDir := path.Dir(dest)
-	if !IsFileOrFolderExisting(targetDir) {
-		err := os.MkdirAll(targetDir, 0700)
-		check(err)
-	}
-	file, err := json.MarshalIndent(information, "", " ")
-	check(err)
-	_ = ioutil.WriteFile(dest, file, 0600)
-}
-
 func ReadClientInformation(file string) (ClientInformation, error) {
 	if IsFileOrFolderExisting(file) {
 		clientInformation := ClientInformation{}
@@ -74,5 +63,16 @@ func ReadClientInformation(file string) (ClientInformation, error) {
 		check(err)
 		return clientInformation, nil
 	}
-	return ClientInformation{}, errors.New("no ClientInformation existing")
+	return ClientInformation{}, errors.New("no ClientInformation exist")
+}
+
+func WriteStructToFile(payload interface{}, dest string) {
+	targetDir := path.Dir(dest)
+	if !IsFileOrFolderExisting(targetDir) {
+		err := os.MkdirAll(targetDir, 0700)
+		check(err)
+	}
+	file, err := json.MarshalIndent(payload, "", " ")
+	check(err)
+	_ = ioutil.WriteFile(dest, file, 0600)
 }
