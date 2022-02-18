@@ -84,7 +84,7 @@ func HandleOutdatedAccessToken(clientInformation ClientInformation, oidcClient s
 	clientInformation.DeviceCode = *startDeviceAuthorization(oidcClient, &registerClientOutput, startUrl).DeviceCode
 	var clientInfoPointer *ClientInformation
 	clientInfoPointer = RetrieveToken(oidcClient, Time{}, &clientInformation)
-	WriteClientInfoToFile(clientInfoPointer, ClientInfoFileDestination())
+	WriteStructToFile(clientInfoPointer, ClientInfoFileDestination())
 	return *clientInfoPointer
 }
 

@@ -48,7 +48,7 @@ func TestWriteClientInfoToFile(t *testing.T) {
 
 			defer os.RemoveAll(tt.args.dest)
 
-			WriteClientInfoToFile(tt.args.information, tt.args.dest)
+			WriteStructToFile(tt.args.information, tt.args.dest)
 
 			_, err := os.Open(tt.args.dest)
 			if err != nil {

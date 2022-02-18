@@ -48,6 +48,17 @@ func main() {
 				},
 			},
 		},
+		{
+			Name:        "refresh",
+			Usage:       "Refresh credentials.",
+			Description: "Refreshes the short living credentials based on your last account and role.",
+			Action: func(context *cli.Context) error {
+				checkMandatoryFlags(context)
+				oidcApi, ssoApi := InitClients(context.String("region"))
+				RefreshCredentials(oidcApi, ssoApi, context)
+				return nil
+			},
+		},
 	}
 
 	app := &cli.App{
@@ -104,7 +115,7 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 		var clientInfoPointer *ClientInformation
 		clientInfoPointer = RegisterClient(oidcClient, startUrl)
 		clientInfoPointer = RetrieveToken(oidcClient, Time{}, clientInfoPointer)
-		WriteClientInfoToFile(clientInfoPointer, ClientInfoFileDestination())
+		WriteStructToFile(clientInfoPointer, ClientInfoFileDestination())
 		clientInformation = *clientInfoPointer
 	} else if clientInformation.IsExpired() {
 		log.Println("AccessToken expired. Start retrieving a new AccessToken.")
@@ -113,6 +124,7 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 
 	accountInfo := RetrieveAccountInfo(clientInformation, ssoClient, promptSelector)
 	roleInfo := RetrieveRoleInfo(accountInfo, clientInformation, ssoClient, promptSelector)
+	SaveUsageInformation(accountInfo, roleInfo)
 
 	rci := &sso.GetRoleCredentialsInput{AccountId: accountInfo.AccountId, RoleName: roleInfo.RoleName, AccessToken: &clientInformation.AccessToken}
 	roleCredentials, err := ssoClient.GetRoleCredentials(rci)
