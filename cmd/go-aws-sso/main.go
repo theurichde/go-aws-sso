@@ -16,7 +16,7 @@ import (
 
 func main() {
 
-	flags := []cli.Flag{
+	initialFlags := []cli.Flag{
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:    "start-url",
 			Aliases: []string{"u"},
@@ -58,6 +58,8 @@ func main() {
 				RefreshCredentials(oidcApi, ssoApi, context)
 				return nil
 			},
+			Before: ReadConfigFile(initialFlags),
+			Flags:  initialFlags,
 		},
 		{
 			Name:        "assume",
@@ -69,7 +71,8 @@ func main() {
 				AssumeDirectly(oidcApi, ssoApi, context)
 				return nil
 			},
-			Flags: []cli.Flag{
+			Before: ReadConfigFile(initialFlags),
+			Flags: append(initialFlags, []cli.Flag{
 				altsrc.NewStringFlag(&cli.StringFlag{
 					Name:    "role-name",
 					Aliases: []string{"n"},
@@ -80,7 +83,7 @@ func main() {
 					Aliases: []string{"a"},
 					Usage:   "The account id where your role lives in",
 				}),
-			},
+			}...),
 		},
 	}
 
@@ -102,9 +105,9 @@ func main() {
 			start(oidcApi, ssoApi, context, Prompter{})
 			return nil
 		},
-		Flags:    flags,
+		Flags:    initialFlags,
 		Commands: commands,
-		Before:   ReadConfigFile(flags),
+		Before:   ReadConfigFile(initialFlags),
 	}
 
 	err := app.Run(os.Args)
