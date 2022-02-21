@@ -79,6 +79,24 @@ func (ati ClientInformation) IsExpired() bool {
 	return false
 }
 
+// ProcessClientInformation tries to read available ClientInformation.
+// If no ClientInformation is available it retrieves and creates new one and writes this information to disk
+// When the ClientInformation.AccessToken is expired, it starts retrieving a new AccessToken
+func ProcessClientInformation(oidcClient ssooidciface.SSOOIDCAPI, startUrl string) (ClientInformation, error) {
+	clientInformation, err := ReadClientInformation(ClientInfoFileDestination())
+	if err != nil {
+		var clientInfoPointer *ClientInformation
+		clientInfoPointer = RegisterClient(oidcClient, startUrl)
+		clientInfoPointer = RetrieveToken(oidcClient, Time{}, clientInfoPointer)
+		WriteStructToFile(clientInfoPointer, ClientInfoFileDestination())
+		clientInformation = *clientInfoPointer
+	} else if clientInformation.IsExpired() {
+		log.Println("AccessToken expired. Start retrieving a new AccessToken.")
+		clientInformation = HandleOutdatedAccessToken(clientInformation, oidcClient, startUrl)
+	}
+	return clientInformation, err
+}
+
 func HandleOutdatedAccessToken(clientInformation ClientInformation, oidcClient ssooidciface.SSOOIDCAPI, startUrl string) ClientInformation {
 	registerClientOutput := ssooidc.RegisterClientOutput{ClientId: &clientInformation.ClientId, ClientSecret: &clientInformation.ClientSecret}
 	clientInformation.DeviceCode = *startDeviceAuthorization(oidcClient, &registerClientOutput, startUrl).DeviceCode

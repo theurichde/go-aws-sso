@@ -109,18 +109,7 @@ func ReadConfigFile(flags []cli.Flag) cli.BeforeFunc {
 func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context, promptSelector Prompt) {
 
 	startUrl := context.String("start-url")
-
-	clientInformation, err := ReadClientInformation(ClientInfoFileDestination())
-	if err != nil {
-		var clientInfoPointer *ClientInformation
-		clientInfoPointer = RegisterClient(oidcClient, startUrl)
-		clientInfoPointer = RetrieveToken(oidcClient, Time{}, clientInfoPointer)
-		WriteStructToFile(clientInfoPointer, ClientInfoFileDestination())
-		clientInformation = *clientInfoPointer
-	} else if clientInformation.IsExpired() {
-		log.Println("AccessToken expired. Start retrieving a new AccessToken.")
-		clientInformation = HandleOutdatedAccessToken(clientInformation, oidcClient, startUrl)
-	}
+	clientInformation, err := ProcessClientInformation(oidcClient, startUrl)
 
 	accountInfo := RetrieveAccountInfo(clientInformation, ssoClient, promptSelector)
 	roleInfo := RetrieveRoleInfo(accountInfo, clientInformation, ssoClient, promptSelector)
