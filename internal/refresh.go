@@ -8,6 +8,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"log"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -18,35 +19,37 @@ type LastUsageInformation struct {
 }
 
 func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context) {
-	lui := readUsageInformation()
 
 	startUrl := context.String("start-url")
+	clientInformation, err := ProcessClientInformation(oidcClient, startUrl)
 
-	// TODO: refactor this part, lots of c&p from main.go start()
+	var accountId *string
+	var roleName *string
 
-	clientInformation, err := ReadClientInformation(ClientInfoFileDestination())
+	lui, err := readUsageInformation()
 	if err != nil {
-		var clientInfoPointer *ClientInformation
-		clientInfoPointer = RegisterClient(oidcClient, startUrl)
-		clientInfoPointer = RetrieveToken(oidcClient, Time{}, clientInfoPointer)
-		WriteStructToFile(clientInfoPointer, ClientInfoFileDestination())
-		clientInformation = *clientInfoPointer
-	} else if clientInformation.IsExpired() {
-		log.Println("AccessToken expired. Start retrieving a new AccessToken.")
-		clientInformation = HandleOutdatedAccessToken(clientInformation, oidcClient, startUrl)
+		if strings.Contains(err.Error(), "no such file") {
+			log.Println("Nothing to refresh yet.")
+			accountInfo := RetrieveAccountInfo(clientInformation, ssoClient, Prompter{})
+			roleInfo := RetrieveRoleInfo(accountInfo, clientInformation, ssoClient, Prompter{})
+			roleName = roleInfo.RoleName
+			accountId = accountInfo.AccountId
+			SaveUsageInformation(accountInfo, roleInfo)
+		}
+	} else {
+		accountId = &lui.AccountId
+		roleName = &lui.Role
 	}
 
-	rci := &sso.GetRoleCredentialsInput{AccountId: &lui.AccountId, RoleName: &lui.Role, AccessToken: &clientInformation.AccessToken}
+	rci := &sso.GetRoleCredentialsInput{AccountId: accountId, RoleName: roleName, AccessToken: &clientInformation.AccessToken}
 	roleCredentials, err := ssoClient.GetRoleCredentials(rci)
 	check(err)
 
 	template := ProcessCredentialsTemplate(roleCredentials)
 	WriteAWSCredentialsFile(template)
 
-	// TODO: Error Handling when refresh file is not present
-
-	log.Printf("Successful refreshed credentials for account: %s (%s)", lui.AccountName, lui.AccountId)
-	log.Printf("Assumed role: %s", lui.Role)
+	log.Printf("Successful retrieved credentials for account: %s", *accountId)
+	log.Printf("Assumed role: %s", *roleName)
 	log.Printf("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
 }
 
@@ -61,11 +64,14 @@ func SaveUsageInformation(accountInfo *sso.AccountInfo, roleInfo *sso.RoleInfo) 
 	WriteStructToFile(usageInformation, target)
 }
 
-func readUsageInformation() *LastUsageInformation {
-	bytes, err := os.ReadFile("/home/tim.heurich/.aws/sso/cache/last-usage.json")
-	check(err)
+func readUsageInformation() (*LastUsageInformation, error) {
+	homeDir, _ := os.UserHomeDir()
+	bytes, err := os.ReadFile(homeDir + "/.aws/sso/cache/last-usage.json")
+	if err != nil {
+		return nil, err
+	}
 	lui := new(LastUsageInformation)
 	err = json.Unmarshal(bytes, lui)
 	check(err)
-	return lui
+	return lui, nil
 }
