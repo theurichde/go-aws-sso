@@ -59,6 +59,29 @@ func main() {
 				return nil
 			},
 		},
+		{
+			Name:        "assume",
+			Usage:       "Assume directly into an account and role",
+			Description: "Assume directly into an account and role",
+			Action: func(context *cli.Context) error {
+				checkMandatoryFlags(context)
+				oidcApi, ssoApi := InitClients(context.String("region"))
+				AssumeDirectly(oidcApi, ssoApi, context)
+				return nil
+			},
+			Flags: []cli.Flag{
+				altsrc.NewStringFlag(&cli.StringFlag{
+					Name:    "role-name",
+					Aliases: []string{"n"},
+					Usage:   "The role name you want to assume",
+				}),
+				altsrc.NewStringFlag(&cli.StringFlag{
+					Name:    "account-id",
+					Aliases: []string{"a"},
+					Usage:   "The account id where your role lives in",
+				}),
+			},
+		},
 	}
 
 	app := &cli.App{
