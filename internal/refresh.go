@@ -45,7 +45,7 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 	roleCredentials, err := ssoClient.GetRoleCredentials(rci)
 	check(err)
 
-	template := ProcessCredentialsTemplate(roleCredentials)
+	template := ProcessCredentialsTemplate(roleCredentials, context.String("profile"))
 	WriteAWSCredentialsFile(template)
 
 	log.Printf("Successful retrieved credentials for account: %s", *accountId)

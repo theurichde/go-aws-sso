@@ -17,7 +17,7 @@ func AssumeDirectly(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAP
 	rci := &sso.GetRoleCredentialsInput{AccountId: &accountId, RoleName: &roleName, AccessToken: &clientInformation.AccessToken}
 	roleCredentials, err := ssoClient.GetRoleCredentials(rci)
 	check(err)
-	template := ProcessCredentialsTemplate(roleCredentials)
+	template := ProcessCredentialsTemplate(roleCredentials, context.String("profile"))
 	WriteAWSCredentialsFile(template)
 
 	log.Printf("Successful retrieved credentials for account: %s", accountId)
