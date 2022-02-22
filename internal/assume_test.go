@@ -85,6 +85,7 @@ func TestAssumeDirectly(t *testing.T) {
 	flagSet.String("region", "eu-central-1", "")
 	flagSet.String("account-id", "123456", "")
 	flagSet.String("role-name", "super-admin", "")
+	flagSet.String("profile", "default", "")
 	ctx := cli.NewContext(nil, flagSet, nil)
 
 	AssumeDirectly(oidcClient, ssoClient, ctx)
