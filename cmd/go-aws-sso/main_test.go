@@ -151,7 +151,7 @@ func Test_processCredentialsTemplate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := internal.ProcessCredentialsTemplate(tt.args.credentials); !reflect.DeepEqual(got, tt.want) {
+			if got := internal.ProcessCredentialsTemplate(tt.args.credentials, "default"); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("processCredentialsTemplate() = %v, want %v", got, tt.want)
 			}
 		})
@@ -246,9 +246,9 @@ func Test_start(t *testing.T) {
 
 	_ = os.Setenv("HOME", "/tmp")
 
-	flagSet := flag.NewFlagSet("start-url", 0)
-	flagSet.String("start-url", "ReadConfigFile", "")
-	newContext := cli.NewContext(nil, flagSet, nil)
+	set := flag.NewFlagSet("start-url", 0)
+	set.String("start-url", "ReadConfigFile", "")
+	newContext := cli.NewContext(nil, set, nil)
 
 	selector := mockPromptUISelector{}
 

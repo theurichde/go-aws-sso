@@ -16,7 +16,7 @@ import (
 
 func main() {
 
-	initialFlags := []cli.Flag{
+	flags := []cli.Flag{
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:    "start-url",
 			Aliases: []string{"u"},
@@ -58,8 +58,8 @@ func main() {
 				RefreshCredentials(oidcApi, ssoApi, context)
 				return nil
 			},
-			Before: ReadConfigFile(initialFlags),
-			Flags:  initialFlags,
+			Before: ReadConfigFile(flags),
+			Flags:  flags,
 		},
 		{
 			Name:        "assume",
@@ -71,8 +71,8 @@ func main() {
 				AssumeDirectly(oidcApi, ssoApi, context)
 				return nil
 			},
-			Before: ReadConfigFile(initialFlags),
-			Flags: append(initialFlags, []cli.Flag{
+			Before: ReadConfigFile(flags),
+			Flags: append(flags, []cli.Flag{
 				altsrc.NewStringFlag(&cli.StringFlag{
 					Name:    "role-name",
 					Aliases: []string{"n"},
@@ -133,9 +133,9 @@ func main() {
 			start(oidcApi, ssoApi, context, Prompter{})
 			return nil
 		},
-		Flags:    initialFlags,
+		Flags:    flags,
 		Commands: commands,
-		Before:   ReadConfigFile(initialFlags),
+		Before:   ReadConfigFile(flags),
 	}
 
 	err := app.Run(os.Args)
@@ -163,11 +163,21 @@ func ReadConfigFile(flags []cli.Flag) cli.BeforeFunc {
 func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context, promptSelector Prompt) {
 
 	startUrl := context.String("start-url")
-	clientInformation, err := ProcessClientInformation(oidcClient, startUrl)
+
+	clientInformation, err := ReadClientInformation(ClientInfoFileDestination())
+	if err != nil {
+		var clientInfoPointer *ClientInformation
+		clientInfoPointer = RegisterClient(oidcClient, startUrl)
+		clientInfoPointer = RetrieveToken(oidcClient, Time{}, clientInfoPointer)
+		WriteStructToFile(clientInfoPointer, ClientInfoFileDestination())
+		clientInformation = *clientInfoPointer
+	} else if clientInformation.IsExpired() {
+		log.Println("AccessToken expired. Start retrieving a new AccessToken.")
+		clientInformation = HandleOutdatedAccessToken(clientInformation, oidcClient, startUrl)
+	}
 
 	accountInfo := RetrieveAccountInfo(clientInformation, ssoClient, promptSelector)
 	roleInfo := RetrieveRoleInfo(accountInfo, clientInformation, ssoClient, promptSelector)
-	SaveUsageInformation(accountInfo, roleInfo)
 
 	rci := &sso.GetRoleCredentialsInput{AccountId: accountInfo.AccountId, RoleName: roleInfo.RoleName, AccessToken: &clientInformation.AccessToken}
 	roleCredentials, err := ssoClient.GetRoleCredentials(rci)
