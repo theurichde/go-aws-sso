@@ -83,6 +83,11 @@ func main() {
 					Aliases: []string{"a"},
 					Usage:   "The account id where your role lives in",
 				}),
+				altsrc.NewStringFlag(&cli.StringFlag{
+					Name:    "profile",
+					Aliases: []string{"p"},
+					Usage:   "The profile name you want to assume",
+				}),
 			}...),
 		},
 		{
@@ -168,7 +173,7 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 	roleCredentials, err := ssoClient.GetRoleCredentials(rci)
 	check(err)
 
-	template := ProcessCredentialsTemplate(roleCredentials)
+	template := ProcessCredentialsTemplate(roleCredentials, context.String("profile"))
 	WriteAWSCredentialsFile(template)
 
 	log.Printf("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))

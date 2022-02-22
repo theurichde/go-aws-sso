@@ -11,8 +11,11 @@ import (
 	"path"
 )
 
-func ProcessCredentialsTemplate(credentials *sso.GetRoleCredentialsOutput) string {
-	template := `[default]
+func ProcessCredentialsTemplate(credentials *sso.GetRoleCredentialsOutput, profile string) string {
+	if len(profile) == 0 {
+		profile = "default"
+	}
+	template := `[{{profile}}]
 aws_access_key_id = {{access_key_id}}
 aws_secret_access_key = {{secret_access_key}}
 aws_session_token = {{session_token}}
@@ -21,6 +24,7 @@ region = eu-central-1`
 
 	engine := fasttemplate.New(template, "{{", "}}")
 	filledTemplate := engine.ExecuteString(map[string]interface{}{
+		"profile":           profile,
 		"access_key_id":     *credentials.RoleCredentials.AccessKeyId,
 		"secret_access_key": *credentials.RoleCredentials.SecretAccessKey,
 		"session_token":     *credentials.RoleCredentials.SessionToken,
