@@ -27,6 +27,12 @@ func main() {
 			Aliases: []string{"r"},
 			Usage:   "Set / override the AWS region",
 		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:    "profile",
+			Aliases: []string{"p"},
+			Value:   "default",
+			Usage:   "The profile name you want to assume",
+		}),
 	}
 
 	commands := []*cli.Command{
@@ -82,11 +88,6 @@ func main() {
 					Name:    "account-id",
 					Aliases: []string{"a"},
 					Usage:   "The account id where your role lives in",
-				}),
-				altsrc.NewStringFlag(&cli.StringFlag{
-					Name:    "profile",
-					Aliases: []string{"p"},
-					Usage:   "The profile name you want to assume",
 				}),
 			}...),
 		},
