@@ -248,6 +248,9 @@ func Test_start(t *testing.T) {
 
 	flagSet := flag.NewFlagSet("start-url", 0)
 	flagSet.String("start-url", "ReadConfigFile", "")
+	flagSet = flag.NewFlagSet("profile", 0)
+	flagSet.String("profile", "default", "")
+
 	newContext := cli.NewContext(nil, flagSet, nil)
 
 	selector := mockPromptUISelector{}
