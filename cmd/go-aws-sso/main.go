@@ -27,6 +27,12 @@ func main() {
 			Aliases: []string{"r"},
 			Usage:   "Set / override the AWS region",
 		}),
+		altsrc.NewStringFlag(&cli.StringFlag{
+			Name:    "profile",
+			Aliases: []string{"p"},
+			Value:   "default",
+			Usage:   "The profile name you want to assume",
+		}),
 	}
 
 	commands := []*cli.Command{
@@ -145,7 +151,7 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 	roleCredentials, err := ssoClient.GetRoleCredentials(rci)
 	check(err)
 
-	template := ProcessCredentialsTemplate(roleCredentials)
+	template := ProcessCredentialsTemplate(roleCredentials, context.String("profile"))
 	WriteAWSCredentialsFile(template)
 
 	log.Printf("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
