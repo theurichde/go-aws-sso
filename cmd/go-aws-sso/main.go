@@ -31,7 +31,7 @@ func main() {
 			Name:    "profile",
 			Aliases: []string{"p"},
 			Value:   "default",
-			Usage:   "The profile name you want to assume",
+			Usage:   "The profile name you want to set in your ~/.aws/credentials file",
 		}),
 	}
 
