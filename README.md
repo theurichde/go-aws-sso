@@ -8,10 +8,10 @@ Make working with AWS SSO on local machines an ease.
 * No nasty manual copy and pasting of credentials
 
 ### But... why? 🤔
+
 * You have one go-to binary
 * No external dependencies (e.g. a python runtime)
 * Forget about dealing with different profiles and role names, just choose them directly!
-
 
 ## Features
 
@@ -23,17 +23,21 @@ Make working with AWS SSO on local machines an ease.
 ## Getting Started
 
 ### Installation
-* a) Download your according target platform binary from the [releases page](https://github.com/theurichde/go-aws-sso/releases)
+
+* a) Download your according target platform binary from
+  the [releases page](https://github.com/theurichde/go-aws-sso/releases)
 * b) Compile from source with `go build -v ./cmd/go-aws-sso`
 * c) use `go install github.com/theurichde/go-aws-sso/cmd/go-aws-sso@main`
-  * Maybe you want to make sure your GOBIN is in your PATH 😉
+    * Maybe you want to make sure your GOBIN is in your PATH 😉
 
 ### Usage
+
 #### Interactively Assume a Role
+
 * Just execute `go-aws-sso`
-  * When you run `go-aws-sso` the first time, you will be prompted for your SSO Start URL and your region
-  * A config file (located at  `$HOME/.aws/go-aws-sso-config.yaml`) will be written with your values
-* ❔ Verify your client request if necessary 
+    * When you run `go-aws-sso` the first time, you will be prompted for your SSO Start URL and your region
+    * A config file (located at  `$HOME/.aws/go-aws-sso-config.yaml`) will be written with your values
+* ❔ Verify your client request if necessary
 * ✅ Choose the account you want the roles to be displayed
 * ✅ Choose a role
     * in case there is only one role available this role is taken as default
@@ -64,6 +68,9 @@ OPTIONS:
 * Optionally: Set / override your start url and region via flag
 
 ### Configuration
+
+<details><summary>Basics</summary>
+
 ```
 $ go-aws-sso config                                 
 NAME:
@@ -81,7 +88,10 @@ OPTIONS:
    --help, -h  show help (default: false)
 ```
 
-#### Config Generation
+</details>
+
+* <details><summary>Config Generation</summary>
+
   ```
   $ go-aws-sso config generate --help
   NAME:
@@ -98,7 +108,10 @@ OPTIONS:
      --help, -h  show help (default: false)
   ```
 
-#### Config Editing
+</details>
+
+* <details><summary>Config Editing</summary>
+
   ```
   $ go-aws-sso config edit --help    
   NAME:
@@ -115,7 +128,10 @@ OPTIONS:
      --help, -h  show help (default: false)
   ```
 
+</details>
+
 ### Example Usage
+
 ```
 $ go-aws-sso help  
 NAME:
@@ -138,6 +154,7 @@ GLOBAL OPTIONS:
 ```
 
 ---
+
 ```
 ./go-aws-sso
 
@@ -169,14 +186,15 @@ Search:
 2021/11/08 19:34:43 Only one role available. Selected role: AWSAdministratorAccess
 2021/11/08 19:34:43 Credentials expire at: 2021-11-08 20:34:43 +0100 CET
 ```
+
 ---
 
 ## Contributions
 
 *Contributions are highly welcome!*
 
-* Feel free to contribute enhancements or bug fixes. 
-  * Fork this repo, apply your changes and create a PR pointing to this repo and the develop branch
+* Feel free to contribute enhancements or bug fixes.
+    * Fork this repo, apply your changes and create a PR pointing to this repo and the develop branch
 * If you have any ideas or suggestions please open an issue and describe your idea or feature request
 
 ## License
