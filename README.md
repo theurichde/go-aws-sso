@@ -12,6 +12,14 @@ Make working with AWS SSO on local machines an ease.
 * No external dependencies (e.g. a python runtime)
 * Forget about dealing with different profiles and role names, just choose them directly!
 
+
+## Features
+
+* Choose your desired account and role interactively
+* Choose your account and role via flags from command line
+* Refresh credentials based on your previously chosen account and role
+* Store your Start-URL and region
+
 ## Getting Started
 
 ### Installation
@@ -21,6 +29,7 @@ Make working with AWS SSO on local machines an ease.
   * Maybe you want to make sure your GOBIN is in your PATH 😉
 
 ### Usage
+#### Interactively Assume a Role
 * Just execute `go-aws-sso`
   * When you run `go-aws-sso` the first time, you will be prompted for your SSO Start URL and your region
   * A config file (located at  `$HOME/.aws/go-aws-sso-config.yaml`) will be written with your values
@@ -29,6 +38,30 @@ Make working with AWS SSO on local machines an ease.
 * ✅ Choose a role
     * in case there is only one role available this role is taken as default
 * 🥳 Tadaa 🥳 short living credentials are written to `~/.aws/credentials`
+
+#### Directly Assume a Role From Command Line
+
+```
+$ ./go-aws-sso help assume                                                                                                                                                   <aws:default>
+NAME:
+   go-aws-sso assume - Assume directly into an account and role
+
+USAGE:
+   go-aws-sso assume [command options] [arguments...]
+
+DESCRIPTION:
+   Assume directly into an account and role
+
+OPTIONS:
+   --start-url value, -u value   Set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)
+   --region value, -r value      Set / override the AWS region
+   --profile value, -p value     The profile name you want to set in your ~/.aws/credentials file (default: "default")
+   --role-name value, -n value   The role name you want to assume
+   --account-id value, -a value  The account id where your role lives in
+```
+
+* Execute `go-aws-sso assume --account-id YOUR_ID --role-name YOUR_ROLE_NAME`
+* Optionally: Set / override your start url and region via flag
 
 ### Configuration
 ```
@@ -89,15 +122,18 @@ NAME:
    go-aws-sso - Retrieve short-living credentials via AWS SSO & SSOOIDC
 
 USAGE:
-   go-aws-sso [global options] command [command options] [arguments...]
+   main [global options] command [command options] [arguments...]
 
 COMMANDS:
-   config   Handles configuration
+   config   Handles configuration. Note: Config location defaults to ${HOME}/.aws/go-aws-sso-config.yaml
+   refresh  Refresh your previously used credentials
+   assume   Assume directly into an account and role
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
    --start-url value, -u value  Set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)
-   --region value, -r value     Set / override the AWS region (default: "eu-central-1")
+   --region value, -r value     Set / override the AWS region
+   --profile value, -p value    The profile name you want to set in your ~/.aws/credentials file (default: "default")
    --help, -h                   show help (default: false)
 ```
 
