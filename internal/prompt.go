@@ -45,9 +45,8 @@ func fuzzySearchWithPrefixAnchor(itemsToSelect []string, linePrefix string) func
 		if strings.HasPrefix(input, linePrefix) {
 			if strings.HasPrefix(role, input) {
 				return true
-			} else {
-				return false
 			}
+			return false
 		} else {
 			if fuzzy.MatchFold(input, role) {
 				return true

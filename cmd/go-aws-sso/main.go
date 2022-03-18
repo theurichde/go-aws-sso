@@ -56,7 +56,7 @@ func main() {
 		},
 		{
 			Name:        "refresh",
-			Usage:       "Refresh credentials.",
+			Usage:       "Refresh your previously used credentials.",
 			Description: "Refreshes the short living credentials based on your last account and role.",
 			Action: func(context *cli.Context) error {
 				checkMandatoryFlags(context)
@@ -141,7 +141,7 @@ func ReadConfigFile(flags []cli.Flag) cli.BeforeFunc {
 func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context, promptSelector Prompt) {
 
 	startUrl := context.String("start-url")
-	clientInformation, err := ProcessClientInformation(oidcClient, startUrl)
+	clientInformation, _ := ProcessClientInformation(oidcClient, startUrl)
 
 	accountInfo := RetrieveAccountInfo(clientInformation, ssoClient, promptSelector)
 	roleInfo := RetrieveRoleInfo(accountInfo, clientInformation, ssoClient, promptSelector)

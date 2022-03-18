@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"time"
 )
@@ -197,10 +198,12 @@ func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface
 	lai := sso.ListAccountsInput{AccessToken: &clientInformation.AccessToken}
 	accounts, _ := ssoClient.ListAccounts(&lai)
 
+	sortedAccounts := sortAccounts(accounts.AccountList)
+
 	var accountsToSelect []string
 	linePrefix := "#"
 
-	for i, info := range accounts.AccountList {
+	for i, info := range sortedAccounts {
 		accountsToSelect = append(accountsToSelect, linePrefix+strconv.Itoa(i)+" "+*info.AccountName+" "+*info.AccountId)
 	}
 
@@ -209,9 +212,20 @@ func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface
 
 	fmt.Println()
 
-	accountInfo := accounts.AccountList[indexChoice]
+	accountInfo := sortedAccounts[indexChoice]
 
 	log.Printf("Selected account: %s - %s", *accountInfo.AccountName, *accountInfo.AccountId)
 	fmt.Println()
-	return accountInfo
+	return &accountInfo
+}
+
+func sortAccounts(accountList []*sso.AccountInfo) []sso.AccountInfo {
+	var sortedAccounts []sso.AccountInfo
+	for _, info := range accountList {
+		sortedAccounts = append(sortedAccounts, *info)
+	}
+	sort.Slice(sortedAccounts, func(i, j int) bool {
+		return *sortedAccounts[i].AccountName < *sortedAccounts[j].AccountName
+	})
+	return sortedAccounts
 }
