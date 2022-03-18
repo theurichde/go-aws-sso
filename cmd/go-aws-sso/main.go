@@ -14,6 +14,12 @@ import (
 	"time"
 )
 
+var (
+	version = "dev"
+	commit  = "unknown"
+	date    = time.Now()
+)
+
 func main() {
 
 	initialFlags := []cli.Flag{
@@ -33,6 +39,10 @@ func main() {
 			Value:   "default",
 			Usage:   "The profile name you want to set in your ~/.aws/credentials file",
 		}),
+	}
+
+	cli.VersionPrinter = func(c *cli.Context) {
+		fmt.Printf("Version: %s\nCommit: %s\nBuild Time: %s\n", version, commit, date)
 	}
 
 	commands := []*cli.Command{
@@ -114,6 +124,7 @@ func main() {
 		Flags:    initialFlags,
 		Commands: commands,
 		Before:   ReadConfigFile(initialFlags),
+		Version:  version,
 	}
 
 	err := app.Run(os.Args)
