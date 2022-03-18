@@ -21,7 +21,7 @@ type LastUsageInformation struct {
 func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context) {
 
 	startUrl := context.String("start-url")
-	clientInformation, err := ProcessClientInformation(oidcClient, startUrl)
+	clientInformation, _ := ProcessClientInformation(oidcClient, startUrl)
 
 	var accountId *string
 	var roleName *string

@@ -14,6 +14,12 @@ import (
 	"time"
 )
 
+var (
+	version = "dev"
+	commit  = "unknown"
+	date    = time.Now()
+)
+
 func main() {
 
 	initialFlags := []cli.Flag{
@@ -33,6 +39,10 @@ func main() {
 			Value:   "default",
 			Usage:   "The profile name you want to set in your ~/.aws/credentials file",
 		}),
+	}
+
+	cli.VersionPrinter = func(c *cli.Context) {
+		fmt.Printf("Version: %s\nCommit: %s\nBuild Time: %s\n", version, commit, date)
 	}
 
 	commands := []*cli.Command{
@@ -56,7 +66,7 @@ func main() {
 		},
 		{
 			Name:        "refresh",
-			Usage:       "Refresh credentials.",
+			Usage:       "Refresh your previously used credentials.",
 			Description: "Refreshes the short living credentials based on your last account and role.",
 			Action: func(context *cli.Context) error {
 				checkMandatoryFlags(context)
@@ -114,6 +124,7 @@ func main() {
 		Flags:    initialFlags,
 		Commands: commands,
 		Before:   ReadConfigFile(initialFlags),
+		Version:  version,
 	}
 
 	err := app.Run(os.Args)
@@ -141,7 +152,7 @@ func ReadConfigFile(flags []cli.Flag) cli.BeforeFunc {
 func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context, promptSelector Prompt) {
 
 	startUrl := context.String("start-url")
-	clientInformation, err := ProcessClientInformation(oidcClient, startUrl)
+	clientInformation, _ := ProcessClientInformation(oidcClient, startUrl)
 
 	accountInfo := RetrieveAccountInfo(clientInformation, ssoClient, promptSelector)
 	roleInfo := RetrieveRoleInfo(accountInfo, clientInformation, ssoClient, promptSelector)

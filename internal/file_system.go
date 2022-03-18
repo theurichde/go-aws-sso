@@ -45,6 +45,9 @@ func WriteAWSCredentialsFile(template string) {
 	check(err)
 }
 
+// IsFileOrFolderExisting
+// Checks either or not a target file is existing.
+// Returns true if the target exists, otherwise false.
 func IsFileOrFolderExisting(target string) bool {
 	if _, err := os.Stat(target); err == nil {
 		return true

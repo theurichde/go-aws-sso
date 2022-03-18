@@ -9,11 +9,13 @@ import (
 	"time"
 )
 
+// AssumeDirectly
+// Directly assumes into a certain account and role, bypassing the prompt and interactive selection.
 func AssumeDirectly(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context) {
 	startUrl := context.String("start-url")
 	accountId := context.String("account-id")
 	roleName := context.String("role-name")
-	clientInformation, err := ProcessClientInformation(oidcClient, startUrl)
+	clientInformation, _ := ProcessClientInformation(oidcClient, startUrl)
 	rci := &sso.GetRoleCredentialsInput{AccountId: &accountId, RoleName: &roleName, AccessToken: &clientInformation.AccessToken}
 	roleCredentials, err := ssoClient.GetRoleCredentials(rci)
 	check(err)
