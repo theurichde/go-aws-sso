@@ -26,10 +26,12 @@ Make working with AWS SSO on local machines an ease.
 
 ### Installation
 
-* a) Download your according target platform binary from
+- via homebrew
+  - `brew tap theurichde/go-aws-sso && brew install go-aws-sso` 
+- Download your according target platform binary from
   the [releases page](https://github.com/theurichde/go-aws-sso/releases)
-* b) Compile from source with `go build -v ./cmd/go-aws-sso`
-* c) use `go install github.com/theurichde/go-aws-sso/cmd/go-aws-sso@main`
+- Compile from source with `go build -v ./cmd/go-aws-sso`
+- use `go install github.com/theurichde/go-aws-sso/cmd/go-aws-sso@main`
     * Maybe you want to make sure your GOBIN is in your PATH 😉
 
 ### Usage
