@@ -145,7 +145,7 @@ func Test_processCredentialsTemplate(t *testing.T) {
 					SessionToken:    &sessionToken,
 				}},
 			},
-			want: "[default]\naws_access_key_id = access_key_id\naws_secret_access_key = secret_access_key\naws_session_token = session_token\noutput = json\nregion = eu-central-1",
+			want: "[default]\naws_access_key_id = access_key_id\naws_secret_access_key = secret_access_key\naws_session_token = session_token\noutput = json\nregion = eu-central-1\n",
 		},
 	}
 
@@ -259,7 +259,7 @@ func Test_start(t *testing.T) {
 	homeDir, _ := os.UserHomeDir()
 	content, _ := ioutil.ReadFile(homeDir + "/.aws/credentials")
 	got := string(content)
-	want := "[default]\naws_access_key_id = dummy\naws_secret_access_key = dummy\naws_session_token = dummy\noutput = json\nregion = eu-central-1"
+	want := "[default]\naws_access_key_id = dummy\naws_secret_access_key = dummy\naws_session_token = dummy\noutput = json\nregion = eu-central-1\n"
 
 	if got != want {
 		t.Errorf("Got: %v, but wanted: %v", got, want)

@@ -94,7 +94,7 @@ func TestAssumeDirectly(t *testing.T) {
 	// TODO: Use a temporary credentials file for testing!
 	content, _ := ioutil.ReadFile(homeDir + "/.aws/credentials")
 	got := string(content)
-	want := "[default]\naws_access_key_id = dummy_assume_directly\naws_secret_access_key = dummy_assume_directly\naws_session_token = dummy_assume_directly\noutput = json\nregion = eu-central-1"
+	want := "[default]\naws_access_key_id = dummy_assume_directly\naws_secret_access_key = dummy_assume_directly\naws_session_token = dummy_assume_directly\noutput = json\nregion = eu-central-1\n"
 
 	if got != want {
 		t.Errorf("Got: %v, but wanted: %v", got, want)
