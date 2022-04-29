@@ -12,6 +12,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
 	"log"
 	"os"
+	"os/exec"
+	"runtime"
 	"sort"
 	"strconv"
 	"time"
@@ -135,7 +137,27 @@ func startDeviceAuthorization(oidc ssooidciface.SSOOIDCAPI, rco *ssooidc.Registe
 	sdao, err := oidc.StartDeviceAuthorization(&ssooidc.StartDeviceAuthorizationInput{ClientId: rco.ClientId, ClientSecret: rco.ClientSecret, StartUrl: &startUrl})
 	check(err)
 	log.Println("Please verify your client request: " + *sdao.VerificationUriComplete)
+	openUrlInBrowser(*sdao.VerificationUriComplete)
 	return *sdao
+}
+
+func openUrlInBrowser(url string) {
+	var err error
+
+	switch runtime.GOOS {
+	case "linux":
+		err = exec.Command("xdg-open", url).Start()
+	case "windows":
+		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+	case "darwin":
+		err = exec.Command("open", url).Start()
+	default:
+		err = fmt.Errorf("could not open %s - unsupported platform. Please open the URL manually", url)
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
+
 }
 
 func RetrieveToken(client ssooidciface.SSOOIDCAPI, timer Timer, info *ClientInformation) *ClientInformation {
