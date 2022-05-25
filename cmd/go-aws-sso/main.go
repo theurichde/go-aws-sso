@@ -79,8 +79,8 @@ func main() {
 		},
 		{
 			Name:        "assume",
-			Usage:       "Assume directly into an account and role",
-			Description: "Assume directly into an account and role",
+			Usage:       "Assume directly into an account and SSO role",
+			Description: "Assume directly into an account and SSO role",
 			Action: func(context *cli.Context) error {
 				checkMandatoryFlags(context)
 				oidcApi, ssoApi := InitClients(context.String("region"))
