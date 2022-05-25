@@ -21,12 +21,18 @@ type LastUsageInformation struct {
 func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context) {
 
 	startUrl := context.String("start-url")
-	clientInformation, _ := ProcessClientInformation(oidcClient, startUrl)
+	clientInformation, err := ReadClientInformation(ClientInfoFileDestination())
+	if err != nil || clientInformation.StartUrl != startUrl {
+		clientInformation, _ = ProcessClientInformation(oidcClient, startUrl)
+	}
+
+	log.Printf("Using Start URL %s", clientInformation.StartUrl)
 
 	var accountId *string
 	var roleName *string
 
 	lui, err := readUsageInformation()
+	log.Printf("Attempting to refresh credentials for account [%s] with role [%s]", lui.AccountName, lui.Role)
 	if err != nil {
 		if strings.Contains(err.Error(), "no such file") {
 			log.Println("Nothing to refresh yet.")
