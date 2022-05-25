@@ -57,6 +57,7 @@ type ClientInformation struct {
 	ClientSecretExpiresAt   string
 	DeviceCode              string
 	VerificationUriComplete string
+	StartUrl                string
 }
 
 type Timer interface {
@@ -84,10 +85,11 @@ func (ati ClientInformation) IsExpired() bool {
 
 // ProcessClientInformation tries to read available ClientInformation.
 // If no ClientInformation is available it retrieves and creates new one and writes this information to disk
+// If the start url is overridden via flag and differs from the previous one, a new Client is registered for the given start url.
 // When the ClientInformation.AccessToken is expired, it starts retrieving a new AccessToken
 func ProcessClientInformation(oidcClient ssooidciface.SSOOIDCAPI, startUrl string) (ClientInformation, error) {
 	clientInformation, err := ReadClientInformation(ClientInfoFileDestination())
-	if err != nil {
+	if err != nil || clientInformation.StartUrl != startUrl {
 		var clientInfoPointer *ClientInformation
 		clientInfoPointer = RegisterClient(oidcClient, startUrl)
 		clientInfoPointer = RetrieveToken(oidcClient, Time{}, clientInfoPointer)
@@ -130,6 +132,7 @@ func RegisterClient(oidc ssooidciface.SSOOIDCAPI, startUrl string) *ClientInform
 		ClientSecretExpiresAt:   strconv.FormatInt(*rco.ClientSecretExpiresAt, 10),
 		DeviceCode:              *sdao.DeviceCode,
 		VerificationUriComplete: *sdao.VerificationUriComplete,
+		StartUrl:                startUrl,
 	}
 }
 
