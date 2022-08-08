@@ -198,7 +198,7 @@ Search:
 *Contributions are highly welcome!*
 
 * Feel free to contribute enhancements or bug fixes.
-    * Fork this repo, apply your changes and create a PR pointing to this repo and the develop branch
+    * Fork this repo, apply your changes and create a PR pointing to this repo and the main branch
 * If you have any ideas or suggestions please open an issue and describe your idea or feature request
 
 ## License
