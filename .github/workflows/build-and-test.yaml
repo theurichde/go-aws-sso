@@ -1,9 +1,9 @@
-name: Develop - Build & Test
+name: Build & Test
 
 on:
-  push:
-    branches-ignore:
-      - 'main'
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
