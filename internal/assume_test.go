@@ -86,6 +86,7 @@ func TestAssumeDirectly(t *testing.T) {
 	flagSet.String("account-id", "123456", "")
 	flagSet.String("role-name", "super-admin", "")
 	flagSet.String("profile", "default", "")
+	flagSet.Bool("persist", true, "")
 	ctx := cli.NewContext(nil, flagSet, nil)
 
 	AssumeDirectly(oidcClient, ssoClient, ctx)

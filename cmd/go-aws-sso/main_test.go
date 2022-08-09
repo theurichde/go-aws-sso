@@ -118,7 +118,7 @@ func Test_retrieveToken(t *testing.T) {
 
 }
 
-func Test_processCredentialsTemplate(t *testing.T) {
+func Test_processPersistedCredentialsTemplate(t *testing.T) {
 	type args struct {
 		accessKeyId     string
 		expiration      string
@@ -151,8 +151,8 @@ func Test_processCredentialsTemplate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := internal.ProcessCredentialsTemplate(tt.args.credentials, "default"); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("processCredentialsTemplate() = %v, want %v", got, tt.want)
+			if got := internal.ProcessPersistedCredentialsTemplate(tt.args.credentials, "default"); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("processPersistedCredentialsTemplate() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -249,6 +249,7 @@ func Test_start(t *testing.T) {
 	flagSet := flag.NewFlagSet("start", 0)
 	flagSet.String("start-url", "ReadConfigFile", "")
 	flagSet.String("profile", "default", "")
+	flagSet.Bool("persist", true, "")
 
 	newContext := cli.NewContext(nil, flagSet, nil)
 
