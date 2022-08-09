@@ -11,7 +11,7 @@ import (
 	"path"
 )
 
-func ProcessCredentialsTemplate(credentials *sso.GetRoleCredentialsOutput, profile string) string {
+func ProcessPersistedCredentialsTemplate(credentials *sso.GetRoleCredentialsOutput, profile string) string {
 	template := `[{{profile}}]
 aws_access_key_id = {{access_key_id}}
 aws_secret_access_key = {{secret_access_key}}
@@ -26,6 +26,22 @@ region = eu-central-1
 		"access_key_id":     *credentials.RoleCredentials.AccessKeyId,
 		"secret_access_key": *credentials.RoleCredentials.SecretAccessKey,
 		"session_token":     *credentials.RoleCredentials.SessionToken,
+	})
+	return filledTemplate
+}
+
+func ProcessCredentialProcessTemplate(accountId string, roleName string, profile string, region string) string {
+	template := `[{{profile}}]
+credential_process = go-aws-sso assume -a {{accountId}} -n {{roleName}}
+region = {{region}}
+`
+
+	engine := fasttemplate.New(template, "{{", "}}")
+	filledTemplate := engine.ExecuteString(map[string]interface{}{
+		"profile":   profile,
+		"region":    region,
+		"accountId": accountId,
+		"roleName":  roleName,
 	})
 	return filledTemplate
 }

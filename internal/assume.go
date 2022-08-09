@@ -1,11 +1,13 @@
 package internal
 
 import (
+	"encoding/json"
 	"github.com/aws/aws-sdk-go/service/sso"
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
 	"github.com/urfave/cli/v2"
 	"log"
+	"os"
 	"time"
 )
 
@@ -19,10 +21,35 @@ func AssumeDirectly(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAP
 	rci := &sso.GetRoleCredentialsInput{AccountId: &accountId, RoleName: &roleName, AccessToken: &clientInformation.AccessToken}
 	roleCredentials, err := ssoClient.GetRoleCredentials(rci)
 	check(err)
-	template := ProcessCredentialsTemplate(roleCredentials, context.String("profile"))
-	WriteAWSCredentialsFile(template)
 
-	log.Printf("Successful retrieved credentials for account: %s", accountId)
-	log.Printf("Assumed role: %s", roleName)
-	log.Printf("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
+	if context.Bool("persist") {
+		template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("profile"))
+		WriteAWSCredentialsFile(template)
+
+		log.Printf("Successful retrieved credentials for account: %s", accountId)
+		log.Printf("Assumed role: %s", roleName)
+		log.Printf("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
+	} else {
+		template := ProcessCredentialProcessTemplate(accountId, roleName, context.String("profile"), context.String("region"))
+		WriteAWSCredentialsFile(template)
+
+		creds := CredentialProcessOutput{
+			Version:         1,
+			AccessKeyId:     *roleCredentials.RoleCredentials.AccessKeyId,
+			Expiration:      time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+			SecretAccessKey: *roleCredentials.RoleCredentials.SecretAccessKey,
+			SessionToken:    *roleCredentials.RoleCredentials.SessionToken,
+		}
+		bytes, _ := json.Marshal(creds)
+		os.Stdout.Write(bytes)
+	}
+
+}
+
+type CredentialProcessOutput struct {
+	Version         int    `json:"Version"`
+	AccessKeyId     string `json:"AccessKeyId"`
+	Expiration      string `json:"Expiration"`
+	SecretAccessKey string `json:"SecretAccessKey"`
+	SessionToken    string `json:"SessionToken"`
 }

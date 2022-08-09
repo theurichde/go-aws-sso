@@ -39,6 +39,10 @@ func main() {
 			Value:   "default",
 			Usage:   "The profile name you want to set in your ~/.aws/credentials file",
 		}),
+		altsrc.NewBoolFlag(&cli.BoolFlag{
+			Name:  "persist",
+			Usage: "Whether or not you want to write your short-living credentials to ~/.aws/credentials",
+		}),
 	}
 
 	cli.VersionPrinter = func(c *cli.Context) {
@@ -162,10 +166,14 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 	roleCredentials, err := ssoClient.GetRoleCredentials(rci)
 	check(err)
 
-	template := ProcessCredentialsTemplate(roleCredentials, context.String("profile"))
-	WriteAWSCredentialsFile(template)
-
-	log.Printf("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
+	if context.Bool("persist") {
+		template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("profile"))
+		WriteAWSCredentialsFile(template)
+		log.Printf("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
+	} else {
+		template := ProcessCredentialProcessTemplate(*accountInfo.AccountId, *roleInfo.RoleName, context.String("profile"), context.String("region"))
+		WriteAWSCredentialsFile(template)
+	}
 
 }
 
