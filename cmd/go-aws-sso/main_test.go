@@ -178,6 +178,9 @@ func Test_isFileExisting(t *testing.T) {
 
 func Test_start(t *testing.T) {
 
+	internal.CredentialsFilePath = os.TempDir() + "/.aws/credentials"
+	tempCredFile := internal.CredentialsFilePath
+
 	dummyInt := int64(132465)
 	dummy := "dummy"
 	accessToken := "AccessToken"
@@ -257,14 +260,15 @@ func Test_start(t *testing.T) {
 
 	start(oidcClient, ssoClient, newContext, selector)
 
-	homeDir, _ := os.UserHomeDir()
-	content, _ := ioutil.ReadFile(homeDir + "/.aws/credentials")
+	content, _ := ioutil.ReadFile(tempCredFile)
 	got := string(content)
 	want := "[default]\naws_access_key_id = dummy\naws_secret_access_key = dummy\naws_session_token = dummy\noutput = json\nregion = eu-central-1\n"
 
 	if got != want {
 		t.Errorf("Got: %v, but wanted: %v", got, want)
 	}
+
+	defer os.RemoveAll(tempCredFile)
 
 }
 
