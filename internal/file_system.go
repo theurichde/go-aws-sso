@@ -11,6 +11,8 @@ import (
 	"path"
 )
 
+var CredentialsFilePath = GetCredentialsFilePath()
+
 func ProcessPersistedCredentialsTemplate(credentials *sso.GetRoleCredentialsOutput, profile string) string {
 	template := `[{{profile}}]
 aws_access_key_id = {{access_key_id}}
@@ -46,19 +48,22 @@ region = {{region}}
 	return filledTemplate
 }
 
-func WriteAWSCredentialsFile(template string) {
-
+func GetCredentialsFilePath() string {
 	homeDir, err := os.UserHomeDir()
 	check(err)
+	return homeDir + "/.aws/credentials"
+}
 
-	credentialsFile := homeDir + "/.aws/credentials"
-	if !IsFileOrFolderExisting(credentialsFile) {
-		err = os.MkdirAll(homeDir+"/.aws", 0777)
+func WriteAWSCredentialsFile(template string) {
+	if !IsFileOrFolderExisting(CredentialsFilePath) {
+		dir := path.Dir(CredentialsFilePath)
+		err := os.MkdirAll(dir, 0755)
 		check(err)
-		_, err = os.OpenFile(credentialsFile, os.O_CREATE, 0644)
+		f, err := os.OpenFile(CredentialsFilePath, os.O_CREATE, 0644)
 		check(err)
+		defer f.Close()
 	}
-	err = ioutil.WriteFile(credentialsFile, []byte(template), 0644)
+	err := ioutil.WriteFile(CredentialsFilePath, []byte(template), 0644)
 	check(err)
 }
 

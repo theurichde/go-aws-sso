@@ -44,6 +44,9 @@ func (m mockSSOClient) GetRoleCredentials(*sso.GetRoleCredentialsInput) (*sso.Ge
 
 func TestAssumeDirectly(t *testing.T) {
 
+	CredentialsFilePath = os.TempDir() + "/.aws/credentials"
+	tempCredsPath := CredentialsFilePath
+
 	dummyInt := int64(132465)
 	dummy := "dummy_assume_directly"
 	accessToken := "AccessToken"
@@ -91,9 +94,8 @@ func TestAssumeDirectly(t *testing.T) {
 
 	AssumeDirectly(oidcClient, ssoClient, ctx)
 
-	homeDir, _ := os.UserHomeDir()
-	// TODO: Use a temporary credentials file for testing!
-	content, _ := ioutil.ReadFile(homeDir + "/.aws/credentials")
+	content, _ := ioutil.ReadFile(tempCredsPath)
+	defer os.RemoveAll(tempCredsPath)
 	got := string(content)
 	want := "[default]\naws_access_key_id = dummy_assume_directly\naws_secret_access_key = dummy_assume_directly\naws_session_token = dummy_assume_directly\noutput = json\nregion = eu-central-1\n"
 
