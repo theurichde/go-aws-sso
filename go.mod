@@ -1,7 +1,7 @@
 module github.com/theurichde/go-aws-sso
 
 require (
-	github.com/aws/aws-sdk-go v1.42.9
+	github.com/aws/aws-sdk-go v1.44.73
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/lithammer/fuzzysearch v1.1.3
 	github.com/manifoldco/promptui v0.9.0
