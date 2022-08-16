@@ -83,7 +83,7 @@ func writeConfig(filePath string, ac AppConfig) error {
 }
 
 func ConfigFilePath() string {
-	homeDir, err := os.UserHomeDir()
+	configDir, err := os.UserConfigDir()
 	check(err)
-	return homeDir + "/.aws/go-aws-sso-config.yaml"
+	return configDir + "/go-aws-sso/config.yml"
 }
