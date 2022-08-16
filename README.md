@@ -19,7 +19,8 @@ Make working with AWS SSO on local machines an ease.
 
 * Choose your desired account and role interactively
 * Choose your account and role via flags from command line
-* Refresh credentials based on your previously chosen account and role
+* Utilize AWSs `credential_process` to avoid storing credentials locally
+* Refresh credentials based on your previously chosen account and role (if you've chosen to persist your credentials)
 * Store your Start-URL and region
 
 ## Getting Started
@@ -27,7 +28,7 @@ Make working with AWS SSO on local machines an ease.
 ### Installation
 
 - via homebrew
-  - `brew tap theurichde/go-aws-sso && brew install go-aws-sso` 
+    - `brew tap theurichde/go-aws-sso && brew install go-aws-sso`
 - Download your according target platform binary from
   the [releases page](https://github.com/theurichde/go-aws-sso/releases)
 - Compile from source with `go build -v ./cmd/go-aws-sso`
@@ -40,17 +41,20 @@ Make working with AWS SSO on local machines an ease.
 
 * Just execute `go-aws-sso`
     * When you run `go-aws-sso` the first time, you will be prompted for your SSO Start URL and your region
-    * A config file (located at  `$HOME/.aws/go-aws-sso-config.yaml`) will be written with your values
+    * A config file (located at  `$HOME/$CONFIG_DIR/go-aws-sso-config.yaml`) will be written with your values
 * ❔ Verify your client request if necessary
 * ✅ Choose the account you want the roles to be displayed
 * ✅ Choose a role
     * in case there is only one role available this role is taken as default
-* 🥳 Tadaa 🥳 short living credentials are written to `~/.aws/credentials`
+* 🥳 Tadaa 🥳
+    * `credentials_process` is written to `~/.aws/credentials` and fetches fresh credentials every time something calls
+      AWS (implementing a proper creds caching mechanism is up to the calling program)
+    * if you've added the flag `--persist`: short living credentials are written to `~/.aws/credentials`
 
 #### Directly Assume a Role From Command Line
 
 ```
-$ ./go-aws-sso help assume                                                                                                                                                   <aws:default>
+$ ./go-aws-sso help assume
 NAME:
    go-aws-sso assume - Assume directly into an account and role
 
@@ -154,7 +158,9 @@ GLOBAL OPTIONS:
    --start-url value, -u value  Set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)
    --region value, -r value     Set / override the AWS region
    --profile value, -p value    The profile name you want to set in your ~/.aws/credentials file (default: "default")
+   --persist                    Whether or not you want to write your short-living credentials to ~/.aws/credentials (default: false)
    --help, -h                   show help (default: false)
+   --version, -v                print the version (default: false)
 ```
 
 ---
