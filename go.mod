@@ -5,7 +5,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/lithammer/fuzzysearch v1.1.5
 	github.com/manifoldco/promptui v0.9.0
-	github.com/urfave/cli/v2 v2.11.2
+	github.com/urfave/cli/v2 v2.16.2
 	github.com/valyala/fasttemplate v1.2.1
 	gopkg.in/yaml.v2 v2.4.0
 )
