@@ -26,23 +26,30 @@ func main() {
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:    "start-url",
 			Aliases: []string{"u"},
-			Usage:   "Set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)",
+			Usage:   "set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)",
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:    "region",
 			Aliases: []string{"r"},
-			Usage:   "Set / override the AWS region",
+			Usage:   "set / override the AWS region",
 		}),
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:    "profile",
 			Aliases: []string{"p"},
 			Value:   "default",
-			Usage:   "The profile name you want to set in your ~/.aws/credentials file",
+			Usage:   "the profile name you want to set in your ~/.aws/credentials file",
 		}),
 		altsrc.NewBoolFlag(&cli.BoolFlag{
 			Name:  "persist",
-			Usage: "Whether or not you want to write your short-living credentials to ~/.aws/credentials",
+			Usage: "whether or not you want to write your short-living credentials to ~/.aws/credentials",
 		}),
+		&cli.BoolFlag{
+			Name:     "force",
+			Usage:    "removes the temporary access token and forces the retrieval of a new token",
+			Value:    false,
+			Hidden:   false,
+			Required: false,
+		},
 	}
 
 	cli.VersionPrinter = func(c *cli.Context) {
@@ -74,6 +81,7 @@ func main() {
 			Description: "Refreshes the short living credentials based on your last account and role.",
 			Action: func(context *cli.Context) error {
 				checkMandatoryFlags(context)
+				applyForceFlag(context)
 				oidcApi, ssoApi := InitClients(context.String("region"))
 				RefreshCredentials(oidcApi, ssoApi, context)
 				return nil
@@ -87,6 +95,7 @@ func main() {
 			Description: "Assume directly into an account and SSO role",
 			Action: func(context *cli.Context) error {
 				checkMandatoryFlags(context)
+				applyForceFlag(context)
 				oidcApi, ssoApi := InitClients(context.String("region"))
 				AssumeDirectly(oidcApi, ssoApi, context)
 				return nil
@@ -122,6 +131,7 @@ func main() {
 			checkMandatoryFlags(context)
 
 			oidcApi, ssoApi := InitClients(context.String("region"))
+			applyForceFlag(context)
 			start(oidcApi, ssoApi, context, Prompter{})
 			return nil
 		},
@@ -193,5 +203,15 @@ func checkMandatoryFlags(context *cli.Context) {
 		check(err)
 		err = context.Set("region", appConfig.Region)
 		check(err)
+	}
+}
+
+func applyForceFlag(context *cli.Context) {
+	if context.Bool("force") {
+		err := os.Remove(ClientInfoFileDestination())
+		if err != nil {
+			log.Printf("Nothing to do, temporary acces token found")
+		}
+		log.Printf("Successful removed temporary acces token")
 	}
 }

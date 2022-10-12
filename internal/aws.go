@@ -113,7 +113,12 @@ func HandleOutdatedAccessToken(clientInformation ClientInformation, oidcClient s
 
 func generateCreateTokenInput(clientInformation *ClientInformation) ssooidc.CreateTokenInput {
 	gtp := grantType
-	return ssooidc.CreateTokenInput{ClientId: &clientInformation.ClientId, ClientSecret: &clientInformation.ClientSecret, DeviceCode: &clientInformation.DeviceCode, GrantType: &gtp}
+	return ssooidc.CreateTokenInput{
+		ClientId:     &clientInformation.ClientId,
+		ClientSecret: &clientInformation.ClientSecret,
+		DeviceCode:   &clientInformation.DeviceCode,
+		GrantType:    &gtp,
+	}
 }
 
 func RegisterClient(oidc ssooidciface.SSOOIDCAPI, startUrl string) *ClientInformation {
