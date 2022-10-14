@@ -56,24 +56,48 @@ Make working with AWS SSO on local machines an ease.
 ```
 $ ./go-aws-sso help assume
 NAME:
-   go-aws-sso assume - Assume directly into an account and role
+   go-aws-sso assume - Assume directly into an account and SSO role
 
 USAGE:
    go-aws-sso assume [command options] [arguments...]
 
 DESCRIPTION:
-   Assume directly into an account and role
+   Assume directly into an account and SSO role
 
 OPTIONS:
-   --start-url value, -u value   Set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)
-   --region value, -r value      Set / override the AWS region
-   --profile value, -p value     The profile name you want to set in your ~/.aws/credentials file (default: "default")
-   --role-name value, -n value   The role name you want to assume
    --account-id value, -a value  The account id where your role lives in
+   --force                       removes the temporary access token and forces the retrieval of a new token (default: false)
+   --persist                     whether or not you want to write your short-living credentials to ~/.aws/credentials (default: false)
+   --profile value, -p value     the profile name you want to set in your ~/.aws/credentials file (default: "default")
+   --region value, -r value      set / override the AWS region
+   --role-name value, -n value   The role name you want to assume
+   --start-url value, -u value   set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)
 ```
 
 * Execute `go-aws-sso assume --account-id YOUR_ID --role-name YOUR_ROLE_NAME`
 * Optionally: Set / override your start url and region via flag
+
+
+### Refresh Credentials
+
+```
+$ go-aws-sso help refresh
+NAME:
+   go-aws-sso refresh - Refresh your previously used credentials.
+
+USAGE:
+   go-aws-sso refresh [command options] [arguments...]
+
+DESCRIPTION:
+   Refreshes the short living credentials based on your last account and role.
+
+OPTIONS:
+   --force                      removes the temporary access token and forces the retrieval of a new token (default: false)
+   --persist                    whether or not you want to write your short-living credentials to ~/.aws/credentials (default: false)
+   --profile value, -p value    the profile name you want to set in your ~/.aws/credentials file (default: "default")
+   --region value, -r value     set / override the AWS region
+   --start-url value, -u value  set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)
+```
 
 ### Configuration
 
@@ -146,20 +170,24 @@ NAME:
    go-aws-sso - Retrieve short-living credentials via AWS SSO & SSOOIDC
 
 USAGE:
-   main [global options] command [command options] [arguments...]
+   go-aws-sso [global options] command [command options] [arguments...]
+
+VERSION:
+   v1.1.0
 
 COMMANDS:
    config   Handles configuration. Note: Config location defaults to ${HOME}/.aws/go-aws-sso-config.yaml
-   refresh  Refresh your previously used credentials
-   assume   Assume directly into an account and role
+   refresh  Refresh your previously used credentials.
+   assume   Assume directly into an account and SSO role
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --start-url value, -u value  Set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)
-   --region value, -r value     Set / override the AWS region
-   --profile value, -p value    The profile name you want to set in your ~/.aws/credentials file (default: "default")
-   --persist                    Whether or not you want to write your short-living credentials to ~/.aws/credentials (default: false)
+   --force                      removes the temporary access token and forces the retrieval of a new token (default: false)
    --help, -h                   show help (default: false)
+   --persist                    whether or not you want to write your short-living credentials to ~/.aws/credentials (default: false)
+   --profile value, -p value    the profile name you want to set in your ~/.aws/credentials file (default: "default")
+   --region value, -r value     set / override the AWS region
+   --start-url value, -u value  set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)
    --version, -v                print the version (default: false)
 ```
 
