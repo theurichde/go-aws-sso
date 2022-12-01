@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -151,21 +152,42 @@ func startDeviceAuthorization(oidc ssooidciface.SSOOIDCAPI, rco *ssooidc.Registe
 
 func openUrlInBrowser(url string) {
 	var err error
+	osName := determineOsName()
 
-	switch runtime.GOOS {
+	switch osName {
 	case "linux":
 		err = exec.Command("xdg-open", url).Start()
 	case "windows":
 		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
 	case "darwin":
 		err = exec.Command("open", url).Start()
+	case "wsl":
+		err = exec.Command("wslview", url).Start()
 	default:
 		err = fmt.Errorf("could not open %s - unsupported platform. Please open the URL manually", url)
 	}
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
+}
 
+func determineOsName() string {
+	if isWindowsSubsystemForLinuxOS() {
+		return "wsl"
+	}
+	return runtime.GOOS
+}
+
+// isWindowsSubsystemForLinuxOS determines if the program is running on WSL
+// Returns true if the OS is running in WSL, false if not.
+// see https://github.com/microsoft/WSL/issues/423#issuecomment-844418910
+func isWindowsSubsystemForLinuxOS() bool {
+	bytes, err := os.ReadFile("/proc/sys/kernel/osrelease")
+	if err != nil {
+		osInfo := strings.ToLower(string(bytes))
+		return strings.Contains("wsl", osInfo)
+	}
+	return false
 }
 
 func RetrieveToken(client ssooidciface.SSOOIDCAPI, timer Timer, info *ClientInformation) *ClientInformation {
