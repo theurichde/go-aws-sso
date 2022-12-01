@@ -4,8 +4,7 @@ builds:
   - env: [ CGO_ENABLED=0 ]
     goos:
       - linux
-# Disabled for now as goreleaser is complaining about the windows/arm64 combo and probably no one is using this with win
-#     - windows
+      - windows
       - darwin
     goarch:
       - amd64
