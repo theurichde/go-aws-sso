@@ -2,6 +2,7 @@ package internal
 
 import (
 	"github.com/lithammer/fuzzysearch/fuzzy"
+	. "github.com/theurichde/go-aws-sso/pkg/sso"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"

@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
 	. "github.com/theurichde/go-aws-sso/internal"
+	. "github.com/theurichde/go-aws-sso/pkg/sso"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
 	"go.uber.org/zap"
@@ -94,7 +95,7 @@ func main() {
 				RefreshCredentials(oidcApi, ssoApi, context)
 				return nil
 			},
-			Before: ReadConfigFile(initialFlags),
+			Before: readConfigFile(initialFlags),
 			Flags:  initialFlags,
 		},
 		{
@@ -108,7 +109,7 @@ func main() {
 				AssumeDirectly(oidcApi, ssoApi, context)
 				return nil
 			},
-			Before: ReadConfigFile(initialFlags),
+			Before: readConfigFile(initialFlags),
 			Flags: append(initialFlags, []cli.Flag{
 				altsrc.NewStringFlag(&cli.StringFlag{
 					Name:    "role-name",
@@ -147,7 +148,7 @@ func main() {
 		},
 		Flags:    initialFlags,
 		Commands: commands,
-		Before:   ReadConfigFile(initialFlags),
+		Before:   readConfigFile(initialFlags),
 		Version:  version,
 	}
 
@@ -157,7 +158,7 @@ func main() {
 	}
 }
 
-func ReadConfigFile(flags []cli.Flag) cli.BeforeFunc {
+func readConfigFile(flags []cli.Flag) cli.BeforeFunc {
 	return func(context *cli.Context) error {
 		inputSource, err := altsrc.NewYamlSourceFromFile(ConfigFilePath())
 		if err != nil {

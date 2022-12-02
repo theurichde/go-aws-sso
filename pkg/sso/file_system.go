@@ -1,4 +1,4 @@
-package internal
+package sso
 
 import (
 	"encoding/json"
@@ -55,7 +55,7 @@ func GetCredentialsFilePath() string {
 }
 
 func WriteAWSCredentialsFile(template string) {
-	if !IsFileOrFolderExisting(CredentialsFilePath) {
+	if !isFileOrFolderExisting(CredentialsFilePath) {
 		dir := path.Dir(CredentialsFilePath)
 		err := os.MkdirAll(dir, 0755)
 		check(err)
@@ -67,10 +67,10 @@ func WriteAWSCredentialsFile(template string) {
 	check(err)
 }
 
-// IsFileOrFolderExisting
+// isFileOrFolderExisting
 // Checks either or not a target file is existing.
 // Returns true if the target exists, otherwise false.
-func IsFileOrFolderExisting(target string) bool {
+func isFileOrFolderExisting(target string) bool {
 	if _, err := os.Stat(target); err == nil {
 		return true
 	} else if os.IsNotExist(err) {
@@ -82,7 +82,7 @@ func IsFileOrFolderExisting(target string) bool {
 }
 
 func ReadClientInformation(file string) (ClientInformation, error) {
-	if IsFileOrFolderExisting(file) {
+	if isFileOrFolderExisting(file) {
 		clientInformation := ClientInformation{}
 		content, _ := os.ReadFile(ClientInfoFileDestination())
 		err := json.Unmarshal(content, &clientInformation)
@@ -94,11 +94,17 @@ func ReadClientInformation(file string) (ClientInformation, error) {
 
 func WriteStructToFile(payload interface{}, dest string) {
 	targetDir := path.Dir(dest)
-	if !IsFileOrFolderExisting(targetDir) {
+	if !isFileOrFolderExisting(targetDir) {
 		err := os.MkdirAll(targetDir, 0700)
 		check(err)
 	}
 	file, err := json.MarshalIndent(payload, "", " ")
 	check(err)
 	_ = os.WriteFile(dest, file, 0600)
+}
+
+func check(err error) {
+	if err != nil {
+		zap.S().Fatalf("Something went wrong: %q", err)
+	}
 }
