@@ -6,10 +6,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
-	"github.com/theurichde/go-aws-sso/internal"
+	. "github.com/theurichde/go-aws-sso/pkg/sso"
 	"github.com/urfave/cli/v2"
 	"os"
-	"reflect"
 	"testing"
 	"time"
 )
@@ -53,133 +52,18 @@ func (m mockSSOClient) GetRoleCredentials(*sso.GetRoleCredentialsInput) (*sso.Ge
 }
 
 type mockTime struct {
-	internal.Timer
+	Timer
 }
 
 func (t mockTime) Now() time.Time {
 	return time.Date(2021, 01, 01, 00, 00, 00, 00, &time.Location{})
 }
 
-func TestClientInformation_isExpired(t *testing.T) {
-	type fields struct {
-		AccessTokenExpiresAt time.Time
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		want   bool
-	}{
-		{
-			name: "Should recognize a non-expired token",
-			fields: fields{
-				AccessTokenExpiresAt: time.Now().Add(time.Hour*8 - time.Minute*5),
-			},
-			want: false,
-		},
-		{
-			name: "Should recognize an expired token",
-			fields: fields{
-				AccessTokenExpiresAt: time.Now().Add(-8 * time.Hour),
-			},
-			want: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ati := internal.ClientInformation{
-				AccessTokenExpiresAt: tt.fields.AccessTokenExpiresAt,
-			}
-			if got := ati.IsExpired(); got != tt.want {
-				t.Errorf("isExpired() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_retrieveToken(t *testing.T) {
-
-	mockTime := mockTime{}
-	at := "accessToken"
-	want := internal.ClientInformation{AccessToken: at, AccessTokenExpiresAt: mockTime.Now().Add(time.Hour*8 - time.Minute*5)}
-
-	t.Run("foobar", func(t *testing.T) {
-		mockClient := mockSSOOIDCClient{CreateTokenOutput: ssooidc.CreateTokenOutput{
-			AccessToken: &at,
-		}}
-
-		got := internal.RetrieveToken(mockClient, mockTime, &internal.ClientInformation{})
-
-		if !reflect.DeepEqual(*got, want) {
-			t.Errorf("retrieveToken() = got %v, want %v", *got, want)
-		}
-
-	})
-
-}
-
-func Test_processPersistedCredentialsTemplate(t *testing.T) {
-	type args struct {
-		accessKeyId     string
-		expiration      string
-		secretAccessKey string
-		sessionToken    string
-		credentials     *sso.GetRoleCredentialsOutput
-	}
-
-	accessKeyId := "access_key_id"
-	secretAccessKey := "secret_access_key"
-	sessionToken := "session_token"
-
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			name: "Process Credentials Template",
-			args: args{
-				credentials: &sso.GetRoleCredentialsOutput{RoleCredentials: &sso.RoleCredentials{
-					AccessKeyId:     &accessKeyId,
-					SecretAccessKey: &secretAccessKey,
-					SessionToken:    &sessionToken,
-				}},
-			},
-			want: "[default]\naws_access_key_id = access_key_id\naws_secret_access_key = secret_access_key\naws_session_token = session_token\noutput = json\nregion = eu-central-1\n",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := internal.ProcessPersistedCredentialsTemplate(tt.args.credentials, "default", "eu-central-1"); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("processPersistedCredentialsTemplate() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_isFileExisting(t *testing.T) {
-
-	tempFile, _ := os.CreateTemp("", "used-for-testing")
-	t.Run("True if file exists", func(t *testing.T) {
-		got := internal.IsFileOrFolderExisting(tempFile.Name())
-		if got != true {
-			t.Errorf("isFileExisting() = %v, want %v", got, true)
-		}
-	})
-
-	t.Run("False if file does not exist", func(t *testing.T) {
-		got := internal.IsFileOrFolderExisting("/tmp/not-existing-file.name")
-		if got != false {
-			t.Errorf("isFileExisting() = %v, want %v", got, true)
-		}
-	})
-}
-
 func Test_start(t *testing.T) {
 
 	temp, err := os.CreateTemp("", "go-aws-sso_start")
 	check(err)
-	internal.CredentialsFilePath = temp.Name()
+	CredentialsFilePath = temp.Name()
 
 	dummyInt := int64(132465)
 	dummy := "dummy"
@@ -250,7 +134,7 @@ func Test_start(t *testing.T) {
 	_ = os.Setenv("HOME", "/tmp")
 
 	flagSet := flag.NewFlagSet("start", 0)
-	flagSet.String("start-url", "ReadConfigFile", "")
+	flagSet.String("start-url", "readConfigFile", "")
 	flagSet.String("profile", "default", "")
 	flagSet.String("region", "eu-central-1", "")
 	flagSet.Bool("persist", true, "")
@@ -261,7 +145,7 @@ func Test_start(t *testing.T) {
 
 	start(oidcClient, ssoClient, newContext, selector)
 
-	content, _ := os.ReadFile(internal.CredentialsFilePath)
+	content, _ := os.ReadFile(CredentialsFilePath)
 	got := string(content)
 	want := "[default]\naws_access_key_id = dummy\naws_secret_access_key = dummy\naws_session_token = dummy\noutput = json\nregion = eu-central-1\n"
 
@@ -269,7 +153,7 @@ func Test_start(t *testing.T) {
 		t.Errorf("Got: %v, but wanted: %v", got, want)
 	}
 
-	defer os.RemoveAll(internal.CredentialsFilePath)
+	defer os.RemoveAll(CredentialsFilePath)
 
 }
 
