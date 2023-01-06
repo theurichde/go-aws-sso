@@ -7,7 +7,8 @@ require (
 	github.com/manifoldco/promptui v0.9.0
 	github.com/urfave/cli/v2 v2.23.7
 	github.com/valyala/fasttemplate v1.2.2
-	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 go 1.16
