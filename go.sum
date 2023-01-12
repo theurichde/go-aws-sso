@@ -12,6 +12,8 @@ github.com/aws/aws-sdk-go v1.44.177 h1:ckMJhU5Gj+4Rta+bJIUiUd7jvHom84aim3zkGPblq
 github.com/aws/aws-sdk-go v1.44.177/go.mod h1:aVsgQcEevwlmQ7qHE9I3h+dtQgpqhFB+i8Phjh7fkwI=
 github.com/aws/aws-sdk-go v1.44.178 h1:4igreoWPEA7xVLnOeSXLhDXTsTSPKQONZcQ3llWAJw0=
 github.com/aws/aws-sdk-go v1.44.178/go.mod h1:aVsgQcEevwlmQ7qHE9I3h+dtQgpqhFB+i8Phjh7fkwI=
+github.com/aws/aws-sdk-go v1.44.179 h1:2mLZYSRc6awtjfD3XV+8NbuQWUVOo03/5VJ0tPenMJ0=
+github.com/aws/aws-sdk-go v1.44.179/go.mod h1:aVsgQcEevwlmQ7qHE9I3h+dtQgpqhFB+i8Phjh7fkwI=
 github.com/chzyer/logex v1.1.10 h1:Swpa1K6QvQznwJRcfTfQJmTE72DqScAa40E+fbHEXEE=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e h1:fY5BOSpyZCqRo5OhCuC+XN+r/bBCmeuuJtjz+bCNIf8=
