@@ -4,7 +4,6 @@ import (
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -58,7 +57,7 @@ func EditConfigAction(_ *cli.Context) error {
 
 func ReadConfig(filePath string) *AppConfig {
 
-	bytes, err := ioutil.ReadFile(filePath)
+	bytes, err := os.ReadFile(filePath)
 	check(err)
 	appConfig := AppConfig{}
 	err = yaml.Unmarshal(bytes, &appConfig)
@@ -74,7 +73,7 @@ func writeConfig(filePath string, ac AppConfig) error {
 	err = os.MkdirAll(base, 0755)
 	check(err)
 
-	err = ioutil.WriteFile(filePath, bytes, 0755)
+	err = os.WriteFile(filePath, bytes, 0755)
 	check(err)
 
 	log.Printf("Config file generated: %s", filePath)
