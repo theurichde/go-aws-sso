@@ -8,6 +8,7 @@
     ":rebaseStalePrs",
     ":renovatePrefix",
     ":semanticCommits",
-    "group:allNonMajor"
+    "group:allNonMajor",
+    "schedule:weekly"
   ]
 }
