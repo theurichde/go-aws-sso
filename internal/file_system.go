@@ -12,18 +12,19 @@ import (
 
 var CredentialsFilePath = GetCredentialsFilePath()
 
-func ProcessPersistedCredentialsTemplate(credentials *sso.GetRoleCredentialsOutput, profile string) string {
+func ProcessPersistedCredentialsTemplate(credentials *sso.GetRoleCredentialsOutput, profile string, region string) string {
 	template := `[{{profile}}]
 aws_access_key_id = {{access_key_id}}
 aws_secret_access_key = {{secret_access_key}}
 aws_session_token = {{session_token}}
 output = json
-region = eu-central-1
+region = {{region}}
 `
 
 	engine := fasttemplate.New(template, "{{", "}}")
 	filledTemplate := engine.ExecuteString(map[string]interface{}{
 		"profile":           profile,
+		"region":            region,
 		"access_key_id":     *credentials.RoleCredentials.AccessKeyId,
 		"secret_access_key": *credentials.RoleCredentials.SecretAccessKey,
 		"session_token":     *credentials.RoleCredentials.SessionToken,
