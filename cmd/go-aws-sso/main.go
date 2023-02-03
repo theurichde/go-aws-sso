@@ -8,7 +8,8 @@ import (
 	. "github.com/theurichde/go-aws-sso/internal"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
-	"log"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"os"
 	"strings"
 	"time"
@@ -46,6 +47,13 @@ func main() {
 		&cli.BoolFlag{
 			Name:     "force",
 			Usage:    "removes the temporary access token and forces the retrieval of a new token",
+			Value:    false,
+			Hidden:   false,
+			Required: false,
+		},
+		&cli.BoolFlag{
+			Name:     "debug",
+			Usage:    "enables debug logging",
 			Value:    false,
 			Hidden:   false,
 			Required: false,
@@ -122,6 +130,8 @@ func main() {
 		EnableBashCompletion: true,
 		Action: func(context *cli.Context) error {
 
+			initializeLogger(context)
+
 			if len(context.Args().Slice()) != 0 {
 				fmt.Printf("Command not found: %s\n", context.Args().First())
 				println("Try help or --help for usage")
@@ -143,7 +153,7 @@ func main() {
 
 	err := app.Run(os.Args)
 	if err != nil {
-		log.Fatal(err)
+		zap.S().Fatal(err)
 	}
 }
 
@@ -179,7 +189,7 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 	if context.Bool("persist") {
 		template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("profile"))
 		WriteAWSCredentialsFile(template)
-		log.Printf("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
+		zap.S().Infof("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
 	} else {
 		template := ProcessCredentialProcessTemplate(*accountInfo.AccountId, *roleInfo.RoleName, context.String("profile"), context.String("region"))
 		WriteAWSCredentialsFile(template)
@@ -189,13 +199,14 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 
 func check(err error) {
 	if err != nil {
-		log.Fatalf("Something went wrong: %q", err)
+		zap.S().Fatalf("Something went wrong: %q", err)
 	}
 }
 
 func checkMandatoryFlags(context *cli.Context) {
+	zap.S().Debug("Checking mandatory flags")
 	if context.String("start-url") == "" || context.String("region") == "" {
-		log.Println("No Start URL given. Please set it now.")
+		zap.S().Warn("No Start URL given. Please set it now.")
 		err := GenerateConfigAction(context)
 		check(err)
 		appConfig := ReadConfig(ConfigFilePath())
@@ -210,8 +221,30 @@ func applyForceFlag(context *cli.Context) {
 	if context.Bool("force") {
 		err := os.Remove(ClientInfoFileDestination())
 		if err != nil {
-			log.Printf("Nothing to do, temporary acces token found")
+			zap.S().Infof("Nothing to do, temporary acces token found")
 		}
-		log.Printf("Successful removed temporary acces token")
+		zap.S().Infof("Successful removed temporary acces token")
 	}
+}
+
+func initializeLogger(context *cli.Context) {
+	config := zap.NewProductionEncoderConfig()
+	config.EncodeTime = zapcore.ISO8601TimeEncoder
+	config.ConsoleSeparator = " "
+	config.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	logLevel := zapcore.InfoLevel
+
+	if context.Bool("debug") {
+		logLevel = zapcore.DebugLevel
+		config.EncodeCaller = zapcore.ShortCallerEncoder
+		config.CallerKey = "callerKey"
+	}
+
+	encoder := zapcore.NewConsoleEncoder(config)
+	core := zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), logLevel)
+	logger := zap.New(core, zap.WithCaller(context.Bool("debug")), zap.AddStacktrace(zapcore.ErrorLevel))
+	logger.Sync()
+	zap.ReplaceGlobals(logger)
+
+	zap.S().Debug("Debug logging enabled")
 }

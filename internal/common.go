@@ -1,9 +1,11 @@
 package internal
 
-import "log"
+import (
+	"go.uber.org/zap"
+)
 
 func check(err error) {
 	if err != nil {
-		log.Fatalf("Something went wrong: %q", err)
+		zap.S().Fatal("Something went wrong: %q", err)
 	}
 }

@@ -3,10 +3,9 @@ package internal
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/aws/aws-sdk-go/service/sso"
 	"github.com/valyala/fasttemplate"
-	"io/ioutil"
+	"go.uber.org/zap"
 	"os"
 	"path"
 )
@@ -76,8 +75,8 @@ func IsFileOrFolderExisting(target string) bool {
 	} else if os.IsNotExist(err) {
 		return false
 	} else {
-		message := fmt.Sprintf("Could not determine if file or folder %q exists or not. Exiting.", target)
-		panic(message)
+		zap.S().Panicf("Could not determine if file or folder %s exists or not. Exiting.", target)
+		return false
 	}
 }
 
