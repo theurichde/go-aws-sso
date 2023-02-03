@@ -6,7 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
 	"github.com/urfave/cli/v2"
-	"log"
+	"go.uber.org/zap"
 	"os"
 	"strings"
 	"time"
@@ -26,16 +26,16 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 		clientInformation, _ = ProcessClientInformation(oidcClient, startUrl)
 	}
 
-	log.Printf("Using Start URL %s", clientInformation.StartUrl)
+	zap.S().Infof("Using Start URL %s", clientInformation.StartUrl)
 
 	var accountId *string
 	var roleName *string
 
 	lui, err := readUsageInformation()
-	log.Printf("Attempting to refresh credentials for account [%s] with role [%s]", lui.AccountName, lui.Role)
+	zap.S().Infof("Attempting to refresh credentials for account [%s] with role [%s]", lui.AccountName, lui.Role)
 	if err != nil {
 		if strings.Contains(err.Error(), "no such file") {
-			log.Println("Nothing to refresh yet.")
+			zap.S().Info("Nothing to refresh yet")
 			accountInfo := RetrieveAccountInfo(clientInformation, ssoClient, Prompter{})
 			roleInfo := RetrieveRoleInfo(accountInfo, clientInformation, ssoClient, Prompter{})
 			roleName = roleInfo.RoleName
@@ -54,9 +54,9 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 	template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("profile"))
 	WriteAWSCredentialsFile(template)
 
-	log.Printf("Successful retrieved credentials for account: %s", *accountId)
-	log.Printf("Assumed role: %s", *roleName)
-	log.Printf("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
+	zap.S().Infof("Successful retrieved credentials for account: %s", *accountId)
+	zap.S().Infof("Assumed role: %s", *roleName)
+	zap.S().Infof("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
 }
 
 func SaveUsageInformation(accountInfo *sso.AccountInfo, roleInfo *sso.RoleInfo) {

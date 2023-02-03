@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
-	"log"
+	"go.uber.org/zap"
 	"os"
 	"os/exec"
 	"runtime"
@@ -97,7 +97,7 @@ func ProcessClientInformation(oidcClient ssooidciface.SSOOIDCAPI, startUrl strin
 		WriteStructToFile(clientInfoPointer, ClientInfoFileDestination())
 		clientInformation = *clientInfoPointer
 	} else if clientInformation.IsExpired() {
-		log.Println("AccessToken expired. Start retrieving a new AccessToken.")
+		zap.S().Infof("AccessToken expired. Start retrieving a new AccessToken.")
 		clientInformation = HandleOutdatedAccessToken(clientInformation, oidcClient, startUrl)
 	}
 	return clientInformation, err
@@ -145,7 +145,7 @@ func RegisterClient(oidc ssooidciface.SSOOIDCAPI, startUrl string) *ClientInform
 func startDeviceAuthorization(oidc ssooidciface.SSOOIDCAPI, rco *ssooidc.RegisterClientOutput, startUrl string) ssooidc.StartDeviceAuthorizationOutput {
 	sdao, err := oidc.StartDeviceAuthorization(&ssooidc.StartDeviceAuthorizationInput{ClientId: rco.ClientId, ClientSecret: rco.ClientSecret, StartUrl: &startUrl})
 	check(err)
-	log.Println("Please verify your client request: " + *sdao.VerificationUriComplete)
+	zap.S().Warnf("Please verify your client request: %s", *sdao.VerificationUriComplete)
 	openUrlInBrowser(*sdao.VerificationUriComplete)
 	return *sdao
 }
@@ -167,7 +167,7 @@ func openUrlInBrowser(url string) {
 		err = fmt.Errorf("could not open %s - unsupported platform. Please open the URL manually", url)
 	}
 	if err != nil {
-		log.Println(err)
+		zap.S().Error(err)
 	}
 }
 
@@ -197,11 +197,11 @@ func RetrieveToken(client ssooidciface.SSOOIDCAPI, timer Timer, info *ClientInfo
 		if err != nil {
 			if awsErr, ok := err.(awserr.Error); ok {
 				if awsErr.Code() == "AuthorizationPendingException" {
-					log.Println("Still waiting for authorization...")
+					zap.S().Infof("Still waiting for authorization...")
 					time.Sleep(3 * time.Second)
 					continue
 				} else {
-					log.Fatal(err)
+					zap.S().Fatal(err)
 				}
 			}
 		} else {
@@ -229,7 +229,7 @@ func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInfo
 	roles, _ := ssoClient.ListAccountRoles(lari)
 
 	if len(roles.RoleList) == 1 {
-		log.Printf("Only one role available. Selected role: %s\n", *roles.RoleList[0].RoleName)
+		zap.S().Infof("Only one role available. Selected role: %s\n", *roles.RoleList[0].RoleName)
 		return roles.RoleList[0]
 	}
 
@@ -267,7 +267,7 @@ func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface
 
 	accountInfo := sortedAccounts[indexChoice]
 
-	log.Printf("Selected account: %s - %s", *accountInfo.AccountName, *accountInfo.AccountId)
+	zap.S().Infof("Selected account: %s - %s", *accountInfo.AccountName, *accountInfo.AccountId)
 	fmt.Println()
 	return &accountInfo
 }
