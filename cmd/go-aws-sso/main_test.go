@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
 	"github.com/theurichde/go-aws-sso/internal"
 	"github.com/urfave/cli/v2"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
@@ -261,7 +260,7 @@ func Test_start(t *testing.T) {
 
 	start(oidcClient, ssoClient, newContext, selector)
 
-	content, _ := ioutil.ReadFile(internal.CredentialsFilePath)
+	content, _ := os.ReadFile(internal.CredentialsFilePath)
 	got := string(content)
 	want := "[default]\naws_access_key_id = dummy\naws_secret_access_key = dummy\naws_session_token = dummy\noutput = json\nregion = eu-central-1\n"
 

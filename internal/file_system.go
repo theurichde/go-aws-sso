@@ -62,7 +62,7 @@ func WriteAWSCredentialsFile(template string) {
 		check(err)
 		defer f.Close()
 	}
-	err := ioutil.WriteFile(CredentialsFilePath, []byte(template), 0644)
+	err := os.WriteFile(CredentialsFilePath, []byte(template), 0644)
 	check(err)
 }
 
@@ -83,7 +83,7 @@ func IsFileOrFolderExisting(target string) bool {
 func ReadClientInformation(file string) (ClientInformation, error) {
 	if IsFileOrFolderExisting(file) {
 		clientInformation := ClientInformation{}
-		content, _ := ioutil.ReadFile(ClientInfoFileDestination())
+		content, _ := os.ReadFile(ClientInfoFileDestination())
 		err := json.Unmarshal(content, &clientInformation)
 		check(err)
 		return clientInformation, nil
@@ -99,5 +99,5 @@ func WriteStructToFile(payload interface{}, dest string) {
 	}
 	file, err := json.MarshalIndent(payload, "", " ")
 	check(err)
-	_ = ioutil.WriteFile(dest, file, 0600)
+	_ = os.WriteFile(dest, file, 0600)
 }
