@@ -230,7 +230,8 @@ func applyForceFlag(context *cli.Context) {
 
 func initializeLogger(context *cli.Context) {
 	config := zap.NewProductionEncoderConfig()
-	config.EncodeTime = zapcore.ISO8601TimeEncoder
+	config.EncodeTime = zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05")
+
 	config.ConsoleSeparator = " "
 	config.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	logLevel := zapcore.InfoLevel
