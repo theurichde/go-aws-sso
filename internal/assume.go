@@ -23,7 +23,7 @@ func AssumeDirectly(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAP
 	check(err)
 
 	if context.Bool("persist") {
-		template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("profile"))
+		template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("profile"), context.String("region"))
 		WriteAWSCredentialsFile(template)
 
 		zap.S().Infof("Successful retrieved credentials for account: %s", accountId)

@@ -187,7 +187,7 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 	check(err)
 
 	if context.Bool("persist") {
-		template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("profile"))
+		template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("profile"), context.String("region"))
 		WriteAWSCredentialsFile(template)
 		zap.S().Infof("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
 	} else {
