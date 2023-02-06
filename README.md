@@ -41,7 +41,7 @@ Make working with AWS SSO on local machines an ease.
 
 * Just execute `go-aws-sso`
     * When you run `go-aws-sso` the first time, you will be prompted for your SSO Start URL and your region
-    * A config file (located at  `$HOME/$CONFIG_DIR/go-aws-sso-config.yaml`) will be written with your values
+    * A config file (located at  `$HOME/$CONFIG_DIR/go-aws-sso/config.yml`) will be written with your values
 * ❔ Verify your client request if necessary
 * ✅ Choose the account you want the roles to be displayed
 * ✅ Choose a role
@@ -106,7 +106,7 @@ OPTIONS:
 ```
 $ go-aws-sso config                                 
 NAME:
-   go-aws-sso config - Handles configuration. Note: Config location defaults to ${HOME}/.aws/go-aws-sso-config.yaml
+   go-aws-sso config - Handles configuration. Note: Config location defaults to $HOME/$CONFIG_DIR/go-aws-sso/config.yml
 
 USAGE:
    go-aws-sso config command [command options] [arguments...]
@@ -176,7 +176,7 @@ VERSION:
    v1.1.0
 
 COMMANDS:
-   config   Handles configuration. Note: Config location defaults to ${HOME}/.aws/go-aws-sso-config.yaml
+   config   Handles configuration. Note: Config location defaults to $HOME/$CONFIG_DIR/go-aws-sso/config.yml
    refresh  Refresh your previously used credentials.
    assume   Assume directly into an account and SSO role
    help, h  Shows a list of commands or help for one command
@@ -210,7 +210,7 @@ Search: █
     ap-northeast-3
     ap-northeast-2
     [...]
-2021/11/08 19:34:40 Config file generated: /home/theurichde/.aws/go-aws-sso-config.yaml
+2021/11/08 19:34:40 Config file generated: /home/theurichde/.config/go-aws-sso/config.yml
 2021/11/08 19:34:40 Please verify your client request: https://device.sso.eu-central-1.amazonaws.com/?user_code=USR-CDE
 2021/11/08 19:34:40 Still waiting for authorization...
 Search: 
