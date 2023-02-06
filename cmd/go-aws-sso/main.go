@@ -68,7 +68,7 @@ func main() {
 	commands := []*cli.Command{
 		{
 			Name:  "config",
-			Usage: "Handles configuration. Note: Config location defaults to ${HOME}/.aws/go-aws-sso-config.yaml",
+			Usage: "Handles configuration. Note: Config location defaults to $HOME/$CONFIG_DIR/go-aws-sso/config.yml",
 			Subcommands: []*cli.Command{
 				{
 					Name:        "generate",
