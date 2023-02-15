@@ -60,8 +60,8 @@ func WriteAWSCredentialsFile(template ProfileTemplate, profile string, persist b
 		err := os.MkdirAll(dir, 0755)
 		check(err)
 		f, err := os.OpenFile(CredentialsFilePath, os.O_CREATE, 0644)
-		f.Close()
 		check(err)
+		defer f.Close()
 	}
 
 	cfg, err := ini.Load(CredentialsFilePath)
@@ -73,45 +73,21 @@ func WriteAWSCredentialsFile(template ProfileTemplate, profile string, persist b
 			cfg.DeleteSection(sec.Name())
 			sec, err = cfg.NewSection(profile)
 			check(err)
-			_, err = sec.NewKey("aws_access_key_id", template.aws_access_key_id)
-			check(err)
-			_, err = sec.NewKey("aws_secret_access_key", template.aws_secret_access_key)
-			check(err)
-			_, err = sec.NewKey("aws_session_token", template.aws_session_token)
-			check(err)
-			_, err = sec.NewKey("output", "json")
-			check(err)
-			_, err = sec.NewKey("region", template.region)
-			check(err)
+			addPersistedProfileKeys(template, sec)
 		} else {
 			cfg.DeleteSection(sec.Name())
 			sec, err = cfg.NewSection(profile)
 			check(err)
-			_, err = sec.NewKey("credential_process", fmt.Sprintf("go-aws-sso assume -a %s -n %s", template.accountId, template.roleName))
-			check(err)
-			_, err = sec.NewKey("region", template.region)
-			check(err)
+			addProfileKeys(template, sec)
 		}
 	} else {
 		sec, err := cfg.NewSection(profile)
 		check(err)
 
 		if persist {
-			_, err = sec.NewKey("aws_access_key_id", template.aws_access_key_id)
-			check(err)
-			_, err = sec.NewKey("aws_secret_access_key", template.aws_secret_access_key)
-			check(err)
-			_, err = sec.NewKey("aws_session_token", template.aws_session_token)
-			check(err)
-			_, err = sec.NewKey("output", "json")
-			check(err)
-			_, err = sec.NewKey("region", template.region)
-			check(err)
+			addPersistedProfileKeys(template, sec)
 		} else {
-			_, err = sec.NewKey("credential_process", fmt.Sprintf("go-aws-sso assume -a %s -n %s", template.accountId, template.roleName))
-			check(err)
-			_, err = sec.NewKey("region", template.region)
-			check(err)
+			addProfileKeys(template, sec)
 		}
 	}
 	cfg.SaveTo(CredentialsFilePath)
@@ -151,6 +127,26 @@ func WriteStructToFile(payload interface{}, dest string) {
 	file, err := json.MarshalIndent(payload, "", " ")
 	check(err)
 	_ = os.WriteFile(dest, file, 0600)
+}
+
+func addProfileKeys(template ProfileTemplate, sec *ini.Section) {
+	_, err := sec.NewKey("credential_process", fmt.Sprintf("go-aws-sso assume -a %s -n %s", template.accountId, template.roleName))
+	check(err)
+	_, err = sec.NewKey("region", template.region)
+	check(err)
+}
+
+func addPersistedProfileKeys(template ProfileTemplate, sec *ini.Section) {
+	_, err := sec.NewKey("aws_access_key_id", template.aws_access_key_id)
+	check(err)
+	_, err = sec.NewKey("aws_secret_access_key", template.aws_secret_access_key)
+	check(err)
+	_, err = sec.NewKey("aws_session_token", template.aws_session_token)
+	check(err)
+	_, err = sec.NewKey("output", "json")
+	check(err)
+	_, err = sec.NewKey("region", template.region)
+	check(err)
 }
 
 func check(err error) {
