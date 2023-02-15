@@ -3,49 +3,49 @@ package sso
 import (
 	"encoding/json"
 	"errors"
-	"github.com/aws/aws-sdk-go/service/sso"
-	"github.com/valyala/fasttemplate"
-	"go.uber.org/zap"
+	"fmt"
 	"os"
 	"path"
+
+	"github.com/aws/aws-sdk-go/service/sso"
+	"go.uber.org/zap"
+	"gopkg.in/ini.v1"
 )
 
 var CredentialsFilePath = GetCredentialsFilePath()
 
-func ProcessPersistedCredentialsTemplate(credentials *sso.GetRoleCredentialsOutput, profile string, region string) string {
-	template := `[{{profile}}]
-aws_access_key_id = {{access_key_id}}
-aws_secret_access_key = {{secret_access_key}}
-aws_session_token = {{session_token}}
-output = json
-region = {{region}}
-`
-
-	engine := fasttemplate.New(template, "{{", "}}")
-	filledTemplate := engine.ExecuteString(map[string]interface{}{
-		"profile":           profile,
-		"region":            region,
-		"access_key_id":     *credentials.RoleCredentials.AccessKeyId,
-		"secret_access_key": *credentials.RoleCredentials.SecretAccessKey,
-		"session_token":     *credentials.RoleCredentials.SessionToken,
-	})
-	return filledTemplate
+type ProfileTemplate struct {
+	aws_access_key_id     string
+	aws_secret_access_key string
+	aws_session_token     string
+	output                string
+	profile               string
+	region                string
+	accountId             string
+	roleName              string
 }
 
-func ProcessCredentialProcessTemplate(accountId string, roleName string, profile string, region string) string {
-	template := `[{{profile}}]
-credential_process = go-aws-sso assume -a {{accountId}} -n {{roleName}}
-region = {{region}}
-`
+func ProcessPersistedCredentialsTemplate(credentials *sso.GetRoleCredentialsOutput, profile string, region string) ProfileTemplate {
+	profileTemplate := ProfileTemplate{
+		profile:               profile,
+		region:                region,
+		aws_access_key_id:     *credentials.RoleCredentials.AccessKeyId,
+		aws_secret_access_key: *credentials.RoleCredentials.SecretAccessKey,
+		aws_session_token:     *credentials.RoleCredentials.SessionToken,
+		output:                "json",
+	}
 
-	engine := fasttemplate.New(template, "{{", "}}")
-	filledTemplate := engine.ExecuteString(map[string]interface{}{
-		"profile":   profile,
-		"region":    region,
-		"accountId": accountId,
-		"roleName":  roleName,
-	})
-	return filledTemplate
+	return profileTemplate
+}
+
+func ProcessCredentialProcessTemplate(accountId string, roleName string, profile string, region string) ProfileTemplate {
+	profileTemplate := ProfileTemplate{
+		profile:   profile,
+		region:    region,
+		accountId: accountId,
+		roleName:  roleName,
+	}
+	return profileTemplate
 }
 
 func GetCredentialsFilePath() string {
@@ -54,17 +54,67 @@ func GetCredentialsFilePath() string {
 	return homeDir + "/.aws/credentials"
 }
 
-func WriteAWSCredentialsFile(template string) {
+func WriteAWSCredentialsFile(template ProfileTemplate, profile string, persist bool) {
 	if !isFileOrFolderExisting(CredentialsFilePath) {
 		dir := path.Dir(CredentialsFilePath)
 		err := os.MkdirAll(dir, 0755)
 		check(err)
 		f, err := os.OpenFile(CredentialsFilePath, os.O_CREATE, 0644)
+		f.Close()
 		check(err)
-		defer f.Close()
 	}
-	err := os.WriteFile(CredentialsFilePath, []byte(template), 0644)
+
+	cfg, err := ini.Load(CredentialsFilePath)
 	check(err)
+
+	sec, err := cfg.GetSection(profile)
+	if err == nil {
+		if persist {
+			cfg.DeleteSection(sec.Name())
+			sec, err = cfg.NewSection(profile)
+			check(err)
+			_, err = sec.NewKey("aws_access_key_id", template.aws_access_key_id)
+			check(err)
+			_, err = sec.NewKey("aws_secret_access_key", template.aws_secret_access_key)
+			check(err)
+			_, err = sec.NewKey("aws_session_token", template.aws_session_token)
+			check(err)
+			_, err = sec.NewKey("output", "json")
+			check(err)
+			_, err = sec.NewKey("region", template.region)
+			check(err)
+		} else {
+			cfg.DeleteSection(sec.Name())
+			sec, err = cfg.NewSection(profile)
+			check(err)
+			_, err = sec.NewKey("credential_process", fmt.Sprintf("go-aws-sso assume -a %s -n %s", template.accountId, template.roleName))
+			check(err)
+			_, err = sec.NewKey("region", template.region)
+			check(err)
+		}
+	} else {
+		sec, err := cfg.NewSection(profile)
+		check(err)
+
+		if persist {
+			_, err = sec.NewKey("aws_access_key_id", template.aws_access_key_id)
+			check(err)
+			_, err = sec.NewKey("aws_secret_access_key", template.aws_secret_access_key)
+			check(err)
+			_, err = sec.NewKey("aws_session_token", template.aws_session_token)
+			check(err)
+			_, err = sec.NewKey("output", "json")
+			check(err)
+			_, err = sec.NewKey("region", template.region)
+			check(err)
+		} else {
+			_, err = sec.NewKey("credential_process", fmt.Sprintf("go-aws-sso assume -a %s -n %s", template.accountId, template.roleName))
+			check(err)
+			_, err = sec.NewKey("region", template.region)
+			check(err)
+		}
+	}
+	cfg.SaveTo(CredentialsFilePath)
 }
 
 // isFileOrFolderExisting

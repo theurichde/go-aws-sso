@@ -2,6 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/aws/aws-sdk-go/service/sso"
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
@@ -11,9 +15,6 @@ import (
 	"github.com/urfave/cli/v2/altsrc"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"os"
-	"strings"
-	"time"
 )
 
 var (
@@ -189,11 +190,11 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 
 	if context.Bool("persist") {
 		template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("profile"), context.String("region"))
-		WriteAWSCredentialsFile(template)
+		WriteAWSCredentialsFile(template, context.String("profile"), true)
 		zap.S().Infof("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
 	} else {
 		template := ProcessCredentialProcessTemplate(*accountInfo.AccountId, *roleInfo.RoleName, context.String("profile"), context.String("region"))
-		WriteAWSCredentialsFile(template)
+		WriteAWSCredentialsFile(template, context.String("profile"), false)
 	}
 
 }

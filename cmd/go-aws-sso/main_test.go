@@ -2,15 +2,16 @@ package main
 
 import (
 	"flag"
+	"os"
+	"testing"
+	"time"
+
 	"github.com/aws/aws-sdk-go/service/sso"
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
 	"github.com/urfave/cli/v2"
-	"os"
-	"testing"
-	"time"
 )
 
 type mockSSOOIDCClient struct {
@@ -147,7 +148,7 @@ func Test_start(t *testing.T) {
 
 	content, _ := os.ReadFile(CredentialsFilePath)
 	got := string(content)
-	want := "[default]\naws_access_key_id = dummy\naws_secret_access_key = dummy\naws_session_token = dummy\noutput = json\nregion = eu-central-1\n"
+	want := "[default]\naws_access_key_id     = dummy\naws_secret_access_key = dummy\naws_session_token     = dummy\noutput                = json\nregion                = eu-central-1\n"
 
 	if got != want {
 		t.Errorf("Got: %v, but wanted: %v", got, want)

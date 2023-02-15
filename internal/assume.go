@@ -2,14 +2,15 @@ package internal
 
 import (
 	"encoding/json"
+	"os"
+	"time"
+
 	"github.com/aws/aws-sdk-go/service/sso"
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
-	"os"
-	"time"
 )
 
 // AssumeDirectly
@@ -25,14 +26,14 @@ func AssumeDirectly(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAP
 
 	if context.Bool("persist") {
 		template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("profile"), context.String("region"))
-		WriteAWSCredentialsFile(template)
+		WriteAWSCredentialsFile(template, context.String("profile"), true)
 
 		zap.S().Infof("Successful retrieved credentials for account: %s", accountId)
 		zap.S().Infof("Assumed role: %s", roleName)
 		zap.S().Infof("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
 	} else {
 		template := ProcessCredentialProcessTemplate(accountId, roleName, context.String("profile"), context.String("region"))
-		WriteAWSCredentialsFile(template)
+		WriteAWSCredentialsFile(template, context.String("profile"), false)
 
 		creds := CredentialProcessOutput{
 			Version:         1,
