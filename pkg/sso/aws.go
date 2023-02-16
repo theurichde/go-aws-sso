@@ -2,6 +2,13 @@ package sso
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"runtime"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -11,12 +18,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssooidc"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
 	"go.uber.org/zap"
-	"os"
-	"os/exec"
-	"runtime"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const grantType = "urn:ietf:params:oauth:grant-type:device_code"
@@ -194,9 +195,9 @@ func determineOsName() string {
 // see https://github.com/microsoft/WSL/issues/423#issuecomment-844418910
 func isWindowsSubsystemForLinuxOS() bool {
 	bytes, err := os.ReadFile("/proc/sys/kernel/osrelease")
-	if err != nil {
+	if err == nil {
 		osInfo := strings.ToLower(string(bytes))
-		return strings.Contains("wsl", osInfo)
+		return strings.Contains(osInfo, "wsl")
 	}
 	return false
 }
