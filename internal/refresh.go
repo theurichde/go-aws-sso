@@ -2,15 +2,16 @@ package internal
 
 import (
 	"encoding/json"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/aws/aws-sdk-go/service/sso"
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
-	"os"
-	"strings"
-	"time"
 )
 
 type LastUsageInformation struct {
@@ -53,7 +54,7 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 	check(err)
 
 	template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("profile"), context.String("region"))
-	WriteAWSCredentialsFile(template)
+	WriteAWSCredentialsFile(template, context.String("profile"), true)
 
 	zap.S().Infof("Successful retrieved credentials for account: %s", *accountId)
 	zap.S().Infof("Assumed role: %s", *roleName)
