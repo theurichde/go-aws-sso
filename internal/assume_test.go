@@ -100,7 +100,7 @@ func TestAssumeDirectly(t *testing.T) {
 	content, _ := ioutil.ReadFile(CredentialsFilePath)
 	defer os.RemoveAll(CredentialsFilePath)
 	got := string(content)
-	want := "[default]\naws_access_key_id     = dummy_assume_directly\naws_secret_access_key = dummy_assume_directly\naws_session_token     = dummy_assume_directly\noutput                = json\nregion                = eu-central-1\n"
+	want := "[default]\naws_access_key_id     = dummy_assume_directly\naws_secret_access_key = dummy_assume_directly\naws_session_token     = dummy_assume_directly\nregion                = eu-central-1\n"
 
 	if got != want {
 		t.Errorf("Got: %v, but wanted: %v", got, want)

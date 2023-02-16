@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/service/sso"
 	"go.uber.org/zap"
@@ -14,36 +15,30 @@ import (
 
 var CredentialsFilePath = GetCredentialsFilePath()
 
-type ProfileTemplate struct {
-	aws_access_key_id     string
-	aws_secret_access_key string
-	aws_session_token     string
-	output                string
-	profile               string
-	region                string
-	accountId             string
-	roleName              string
+type CredentialsFileTemplate struct {
+	AwsAccessKeyId     string `ini:"aws_access_key_id,omitempty"`
+	AwsSecretAccessKey string `ini:"aws_secret_access_key,omitempty"`
+	AwsSessionToken    string `ini:"aws_session_token,omitempty"`
+	CredentialProcess  string `ini:"credential_process,omitempty"`
+	Output             string `ini:"output,omitempty"`
+	Region             string `ini:"region,omitempty"`
 }
 
-func ProcessPersistedCredentialsTemplate(credentials *sso.GetRoleCredentialsOutput, profile string, region string) ProfileTemplate {
-	profileTemplate := ProfileTemplate{
-		profile:               profile,
-		region:                region,
-		aws_access_key_id:     *credentials.RoleCredentials.AccessKeyId,
-		aws_secret_access_key: *credentials.RoleCredentials.SecretAccessKey,
-		aws_session_token:     *credentials.RoleCredentials.SessionToken,
-		output:                "json",
+func ProcessPersistedCredentialsTemplate(credentials *sso.GetRoleCredentialsOutput, region string) CredentialsFileTemplate {
+	profileTemplate := CredentialsFileTemplate{
+		AwsAccessKeyId:     *credentials.RoleCredentials.AccessKeyId,
+		AwsSecretAccessKey: *credentials.RoleCredentials.SecretAccessKey,
+		AwsSessionToken:    *credentials.RoleCredentials.SessionToken,
+		Region:             region,
 	}
 
 	return profileTemplate
 }
 
-func ProcessCredentialProcessTemplate(accountId string, roleName string, profile string, region string) ProfileTemplate {
-	profileTemplate := ProfileTemplate{
-		profile:   profile,
-		region:    region,
-		accountId: accountId,
-		roleName:  roleName,
+func ProcessCredentialProcessTemplate(accountId string, roleName string, region string) CredentialsFileTemplate {
+	profileTemplate := CredentialsFileTemplate{
+		CredentialProcess: fmt.Sprintf("go-aws-sso assume -a %s -n %s", accountId, roleName),
+		Region:            region,
 	}
 	return profileTemplate
 }
@@ -54,43 +49,46 @@ func GetCredentialsFilePath() string {
 	return homeDir + "/.aws/credentials"
 }
 
-func WriteAWSCredentialsFile(template ProfileTemplate, profile string, persist bool) {
+func WriteAWSCredentialsFile(template *CredentialsFileTemplate, profile string) {
 	if !isFileOrFolderExisting(CredentialsFilePath) {
-		dir := path.Dir(CredentialsFilePath)
-		err := os.MkdirAll(dir, 0755)
-		check(err)
-		f, err := os.OpenFile(CredentialsFilePath, os.O_CREATE, 0644)
-		check(err)
-		defer f.Close()
+		createCredentialsFile()
 	}
+	writeIniFile(template, profile)
+}
 
+func createCredentialsFile() {
+	dir := path.Dir(CredentialsFilePath)
+	err := os.MkdirAll(dir, 0755)
+	check(err)
+	f, err := os.OpenFile(CredentialsFilePath, os.O_CREATE, 0644)
+	check(err)
+	defer f.Close()
+}
+
+func writeIniFile(template *CredentialsFileTemplate, profile string) {
 	cfg, err := ini.Load(CredentialsFilePath)
 	check(err)
 
+	handleSection(template, profile, cfg)
+
+	zap.S().Debugf("Saving ini file to %s", CredentialsFilePath)
+	cfg.SaveTo(CredentialsFilePath)
+}
+
+func handleSection(template *CredentialsFileTemplate, profile string, cfg *ini.File) {
 	sec, err := cfg.GetSection(profile)
-	if err == nil {
-		if persist {
-			cfg.DeleteSection(sec.Name())
-			sec, err = cfg.NewSection(profile)
+	if err != nil {
+		if strings.Contains(err.Error(), fmt.Sprintf("section %q does not exist", profile)) {
+			zap.S().Debugf("Profile %s doesn't exist.", profile)
+			sec, err := cfg.NewSection(profile)
 			check(err)
-			addPersistedProfileKeys(template, sec)
-		} else {
-			cfg.DeleteSection(sec.Name())
-			sec, err = cfg.NewSection(profile)
-			check(err)
-			addProfileKeys(template, sec)
+			err = sec.ReflectFrom(template)
+			zap.S().Debugf("Found %d sections", len(cfg.Sections()))
 		}
 	} else {
-		sec, err := cfg.NewSection(profile)
-		check(err)
-
-		if persist {
-			addPersistedProfileKeys(template, sec)
-		} else {
-			addProfileKeys(template, sec)
-		}
+		zap.S().Debugf("Section %s found, overwriting", profile)
+		sec.ReflectFrom(template)
 	}
-	cfg.SaveTo(CredentialsFilePath)
 }
 
 // isFileOrFolderExisting
@@ -127,26 +125,6 @@ func WriteStructToFile(payload interface{}, dest string) {
 	file, err := json.MarshalIndent(payload, "", " ")
 	check(err)
 	_ = os.WriteFile(dest, file, 0600)
-}
-
-func addProfileKeys(template ProfileTemplate, sec *ini.Section) {
-	_, err := sec.NewKey("credential_process", fmt.Sprintf("go-aws-sso assume -a %s -n %s", template.accountId, template.roleName))
-	check(err)
-	_, err = sec.NewKey("region", template.region)
-	check(err)
-}
-
-func addPersistedProfileKeys(template ProfileTemplate, sec *ini.Section) {
-	_, err := sec.NewKey("aws_access_key_id", template.aws_access_key_id)
-	check(err)
-	_, err = sec.NewKey("aws_secret_access_key", template.aws_secret_access_key)
-	check(err)
-	_, err = sec.NewKey("aws_session_token", template.aws_session_token)
-	check(err)
-	_, err = sec.NewKey("output", "json")
-	check(err)
-	_, err = sec.NewKey("region", template.region)
-	check(err)
 }
 
 func check(err error) {

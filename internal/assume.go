@@ -25,15 +25,15 @@ func AssumeDirectly(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAP
 	check(err)
 
 	if context.Bool("persist") {
-		template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("profile"), context.String("region"))
-		WriteAWSCredentialsFile(template, context.String("profile"), true)
+		template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("region"))
+		WriteAWSCredentialsFile(&template, context.String("profile"))
 
 		zap.S().Infof("Successful retrieved credentials for account: %s", accountId)
 		zap.S().Infof("Assumed role: %s", roleName)
 		zap.S().Infof("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
 	} else {
-		template := ProcessCredentialProcessTemplate(accountId, roleName, context.String("profile"), context.String("region"))
-		WriteAWSCredentialsFile(template, context.String("profile"), false)
+		template := ProcessCredentialProcessTemplate(accountId, roleName, context.String("region"))
+		WriteAWSCredentialsFile(&template, context.String("profile"))
 
 		creds := CredentialProcessOutput{
 			Version:         1,

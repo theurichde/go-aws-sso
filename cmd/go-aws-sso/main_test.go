@@ -148,7 +148,7 @@ func Test_start(t *testing.T) {
 
 	content, _ := os.ReadFile(CredentialsFilePath)
 	got := string(content)
-	want := "[default]\naws_access_key_id     = dummy\naws_secret_access_key = dummy\naws_session_token     = dummy\noutput                = json\nregion                = eu-central-1\n"
+	want := "[default]\naws_access_key_id     = dummy\naws_secret_access_key = dummy\naws_session_token     = dummy\nregion                = eu-central-1\n"
 
 	if got != want {
 		t.Errorf("Got: %v, but wanted: %v", got, want)
