@@ -53,8 +53,8 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 	roleCredentials, err := ssoClient.GetRoleCredentials(rci)
 	check(err)
 
-	template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("profile"), context.String("region"))
-	WriteAWSCredentialsFile(template, context.String("profile"), true)
+	template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("region"))
+	WriteAWSCredentialsFile(&template, context.String("profile"))
 
 	zap.S().Infof("Successful retrieved credentials for account: %s", *accountId)
 	zap.S().Infof("Assumed role: %s", *roleName)
