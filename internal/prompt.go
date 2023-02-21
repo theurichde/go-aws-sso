@@ -14,7 +14,7 @@ type Prompt interface {
 type Prompter struct {
 }
 
-func (receiver Prompter) Select(label string, toSelect []string, searcher func(input string, index int) bool) (int, string) {
+func (p Prompter) Select(label string, toSelect []string, searcher func(input string, index int) bool) (int, string) {
 	prompt := promptui.Select{
 		Label:             label,
 		Items:             toSelect,
@@ -27,7 +27,7 @@ func (receiver Prompter) Select(label string, toSelect []string, searcher func(i
 	return index, value
 }
 
-func (receiver Prompter) Prompt(label string, dfault string) string {
+func (p Prompter) Prompt(label string, dfault string) string {
 	prompt := promptui.Prompt{
 		Label:     label,
 		Default:   dfault,
