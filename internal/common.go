@@ -6,6 +6,6 @@ import (
 
 func check(err error) {
 	if err != nil {
-		zap.S().Fatal("Something went wrong: %q", err)
+		zap.S().Fatalf("Something went wrong: %q", err)
 	}
 }
