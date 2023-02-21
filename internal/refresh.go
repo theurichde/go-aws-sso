@@ -25,7 +25,7 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 	startUrl := context.String("start-url")
 	clientInformation, err := ReadClientInformation(ClientInfoFileDestination())
 	if err != nil || clientInformation.StartUrl != startUrl {
-		clientInformation, _ = ProcessClientInformation(oidcClient, startUrl)
+		clientInformation = ProcessClientInformation(oidcClient, startUrl)
 	}
 
 	zap.S().Infof("Using Start URL %s", clientInformation.StartUrl)
@@ -38,7 +38,10 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 	if err != nil {
 		if strings.Contains(err.Error(), "no such file") {
 			zap.S().Info("Nothing to refresh yet")
-			accountInfo := RetrieveAccountInfo(clientInformation, ssoClient, Prompter{})
+			accountInfo, awsErr := RetrieveAccountInfo(clientInformation, ssoClient, Prompter{})
+			if awsErr != nil && awsErr.Code() == "401" { // unauthorized
+				clientInformation, accountInfo = retryWithNewClientCreds(oidcClient, ssoClient, startUrl)
+			}
 			roleInfo := RetrieveRoleInfo(accountInfo, clientInformation, ssoClient, Prompter{})
 			roleName = roleInfo.RoleName
 			accountId = accountInfo.AccountId
@@ -59,6 +62,15 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 	zap.S().Infof("Successful retrieved credentials for account: %s", *accountId)
 	zap.S().Infof("Assumed role: %s", *roleName)
 	zap.S().Infof("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
+}
+
+func retryWithNewClientCreds(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, startUrl string) (ClientInformation, *sso.AccountInfo) {
+	osErr := os.Remove(ClientInfoFileDestination())
+	check(osErr)
+	clientInformation := ProcessClientInformation(oidcClient, startUrl)
+	accountInfo, awsErr := RetrieveAccountInfo(clientInformation, ssoClient, Prompter{})
+	check(awsErr)
+	return clientInformation, accountInfo
 }
 
 func SaveUsageInformation(accountInfo *sso.AccountInfo, roleInfo *sso.RoleInfo) {
