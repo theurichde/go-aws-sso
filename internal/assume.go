@@ -19,7 +19,7 @@ func AssumeDirectly(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAP
 	startUrl := context.String("start-url")
 	accountId := context.String("account-id")
 	roleName := context.String("role-name")
-	clientInformation, _ := ProcessClientInformation(oidcClient, startUrl)
+	clientInformation := ProcessClientInformation(oidcClient, startUrl)
 	rci := &sso.GetRoleCredentialsInput{AccountId: &accountId, RoleName: &roleName, AccessToken: &clientInformation.AccessToken}
 	roleCredentials, err := ssoClient.GetRoleCredentials(rci)
 	check(err)
@@ -43,7 +43,8 @@ func AssumeDirectly(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAP
 			SessionToken:    *roleCredentials.RoleCredentials.SessionToken,
 		}
 		bytes, _ := json.Marshal(creds)
-		os.Stdout.Write(bytes)
+		_, err = os.Stdout.Write(bytes)
+		check(err)
 	}
 
 }

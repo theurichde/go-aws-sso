@@ -100,9 +100,10 @@ func (ati ClientInformation) isExpired() bool {
 // If no ClientInformation is available, it creates new ones and writes this information to disk
 // If the start url is overridden and differs from the previous one, a new Client is registered for the given start url.
 // When the ClientInformation.AccessToken is expired, it starts retrieving a new AccessToken
-func ProcessClientInformation(oidcClient ssooidciface.SSOOIDCAPI, startUrl string) (ClientInformation, error) {
+func ProcessClientInformation(oidcClient ssooidciface.SSOOIDCAPI, startUrl string) ClientInformation {
 	clientInformation, err := ReadClientInformation(ClientInfoFileDestination())
 	if err != nil || clientInformation.StartUrl != startUrl {
+		zap.S().Debugf("Encountered error while reading client information: %s", err)
 		var clientInfoPointer *ClientInformation
 		clientInfoPointer = registerClient(oidcClient, startUrl)
 		clientInfoPointer = retrieveToken(oidcClient, Time{}, clientInfoPointer)
@@ -112,7 +113,7 @@ func ProcessClientInformation(oidcClient ssooidciface.SSOOIDCAPI, startUrl strin
 		zap.S().Info("AccessToken expired. Start retrieving a new AccessToken")
 		clientInformation = handleOutdatedAccessToken(clientInformation, oidcClient, startUrl)
 	}
-	return clientInformation, err
+	return clientInformation
 }
 
 func handleOutdatedAccessToken(clientInformation ClientInformation, oidcClient ssooidciface.SSOOIDCAPI, startUrl string) ClientInformation {

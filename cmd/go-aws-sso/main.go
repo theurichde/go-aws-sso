@@ -178,9 +178,13 @@ func readConfigFile(flags []cli.Flag) cli.BeforeFunc {
 func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context, promptSelector Prompt) {
 
 	startUrl := context.String("start-url")
-	clientInformation, _ := ProcessClientInformation(oidcClient, startUrl)
+	clientInformation := ProcessClientInformation(oidcClient, startUrl)
 
-	accountInfo := RetrieveAccountInfo(clientInformation, ssoClient, promptSelector)
+	accountInfo, awsErr := RetrieveAccountInfo(clientInformation, ssoClient, promptSelector)
+	if awsErr != nil && awsErr.Code() == "401" { // unauthorized
+		clientInformation, accountInfo = retryWithNewClientCreds(oidcClient, ssoClient, startUrl, promptSelector)
+	}
+
 	roleInfo := RetrieveRoleInfo(accountInfo, clientInformation, ssoClient, promptSelector)
 	SaveUsageInformation(accountInfo, roleInfo)
 
@@ -197,6 +201,15 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 		WriteAWSCredentialsFile(&template, context.String("profile"))
 	}
 
+}
+
+func retryWithNewClientCreds(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, startUrl string, promptSelector Prompt) (ClientInformation, *sso.AccountInfo) {
+	err := os.Remove(ClientInfoFileDestination())
+	check(err)
+	clientInformation := ProcessClientInformation(oidcClient, startUrl)
+	accountInfo, awsErr := RetrieveAccountInfo(clientInformation, ssoClient, promptSelector)
+	check(awsErr)
+	return clientInformation, accountInfo
 }
 
 func check(err error) {

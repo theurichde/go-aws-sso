@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sso"
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
@@ -32,10 +33,16 @@ func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInfo
 	return roleInfo
 }
 
-func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface.SSOAPI, selector Prompt) *sso.AccountInfo {
+func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface.SSOAPI, selector Prompt) (*sso.AccountInfo, awserr.Error) {
 	var maxSize int64 = 1000 // default is 20, but sometimes you have more accounts available ;-)
 	lai := sso.ListAccountsInput{AccessToken: &clientInformation.AccessToken, MaxResults: &maxSize}
-	accounts, _ := ssoClient.ListAccounts(&lai)
+	accounts, err := ssoClient.ListAccounts(&lai)
+	if err != nil {
+		if awsError, ok := err.(awserr.Error); ok {
+			return nil, awsError
+		}
+	}
+	check(err)
 
 	sortedAccounts := sortAccounts(accounts.AccountList)
 
@@ -55,7 +62,7 @@ func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface
 
 	zap.S().Infof("Selected account: %s - %s", *accountInfo.AccountName, *accountInfo.AccountId)
 	fmt.Println()
-	return &accountInfo
+	return &accountInfo, nil
 }
 
 func sortAccounts(accountList []*sso.AccountInfo) []sso.AccountInfo {

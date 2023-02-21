@@ -2,7 +2,6 @@ package internal
 
 import (
 	"flag"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -97,7 +96,7 @@ func TestAssumeDirectly(t *testing.T) {
 
 	AssumeDirectly(oidcClient, ssoClient, ctx)
 
-	content, _ := ioutil.ReadFile(CredentialsFilePath)
+	content, _ := os.ReadFile(CredentialsFilePath)
 	defer os.RemoveAll(CredentialsFilePath)
 	got := string(content)
 	want := "[default]\naws_access_key_id     = dummy_assume_directly\naws_secret_access_key = dummy_assume_directly\naws_session_token     = dummy_assume_directly\nregion                = eu-central-1\n"
