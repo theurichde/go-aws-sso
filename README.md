@@ -22,6 +22,7 @@ Make working with AWS SSO on local machines an ease.
 * Utilize AWSs `credential_process` to avoid storing credentials locally
 * Refresh credentials based on your previously chosen account and role (if you've chosen to persist your credentials)
 * Store your Start-URL and region
+* Set different profiles for your different accounts
 
 ## Getting Started
 
@@ -48,7 +49,7 @@ Make working with AWS SSO on local machines an ease.
     * in case there is only one role available this role is taken as default
 * 🥳 Tadaa 🥳
     * `credentials_process` is written to `~/.aws/credentials` and fetches fresh credentials every time something calls
-      AWS (implementing a proper creds caching mechanism is up to the calling program)
+      AWS (implementing a proper credentials caching mechanism is up to the calling program)
     * if you've added the flag `--persist`: short living credentials are written to `~/.aws/credentials`
 
 #### Directly Assume a Role From Command Line
@@ -65,13 +66,15 @@ DESCRIPTION:
    Assume directly into an account and SSO role
 
 OPTIONS:
-   --account-id value, -a value  The account id where your role lives in
-   --force                       removes the temporary access token and forces the retrieval of a new token (default: false)
-   --persist                     whether or not you want to write your short-living credentials to ~/.aws/credentials (default: false)
-   --profile value, -p value     the profile name you want to set in your ~/.aws/credentials file (default: "default")
-   --region value, -r value      set / override the AWS region
-   --role-name value, -n value   The role name you want to assume
    --start-url value, -u value   set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)
+   --region value, -r value      set / override the AWS region
+   --profile value, -p value     the profile name you want to set in your ~/.aws/credentials file (default: "default")
+   --persist                     whether or not you want to write your short-living credentials to ~/.aws/credentials (default: false)
+   --force                       removes the temporary access token and forces the retrieval of a new token (default: false)
+   --debug                       enables debug logging (default: false)
+   --role-name value, -n value   The role name you want to assume
+   --account-id value, -a value  The account id where your role lives in
+   --help, -h                    show help
 ```
 
 * Execute `go-aws-sso assume --account-id YOUR_ID --role-name YOUR_ROLE_NAME`
@@ -79,6 +82,8 @@ OPTIONS:
 
 
 ### Refresh Credentials
+
+Refreshing credentials is only useful, if you persist your credentials (SecretAccessKey etc.) in your `~/.aws/credentials` file
 
 ```
 $ go-aws-sso help refresh
@@ -92,11 +97,13 @@ DESCRIPTION:
    Refreshes the short living credentials based on your last account and role.
 
 OPTIONS:
-   --force                      removes the temporary access token and forces the retrieval of a new token (default: false)
-   --persist                    whether or not you want to write your short-living credentials to ~/.aws/credentials (default: false)
-   --profile value, -p value    the profile name you want to set in your ~/.aws/credentials file (default: "default")
-   --region value, -r value     set / override the AWS region
    --start-url value, -u value  set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)
+   --region value, -r value     set / override the AWS region
+   --profile value, -p value    the profile name you want to set in your ~/.aws/credentials file (default: "default")
+   --persist                    whether or not you want to write your short-living credentials to ~/.aws/credentials (default: false)
+   --force                      removes the temporary access token and forces the retrieval of a new token (default: false)
+   --debug                      enables debug logging (default: false)
+   --help, -h                   show help
 ```
 
 ### Configuration
@@ -173,7 +180,7 @@ USAGE:
    go-aws-sso [global options] command [command options] [arguments...]
 
 VERSION:
-   v1.1.0
+   v1.2.0
 
 COMMANDS:
    config   Handles configuration. Note: Config location defaults to $HOME/$CONFIG_DIR/go-aws-sso/config.yml
@@ -182,13 +189,14 @@ COMMANDS:
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --force                      removes the temporary access token and forces the retrieval of a new token (default: false)
-   --help, -h                   show help (default: false)
-   --persist                    whether or not you want to write your short-living credentials to ~/.aws/credentials (default: false)
-   --profile value, -p value    the profile name you want to set in your ~/.aws/credentials file (default: "default")
-   --region value, -r value     set / override the AWS region
    --start-url value, -u value  set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)
-   --version, -v                print the version (default: false)
+   --region value, -r value     set / override the AWS region
+   --profile value, -p value    the profile name you want to set in your ~/.aws/credentials file (default: "default")
+   --persist                    whether or not you want to write your short-living credentials to ~/.aws/credentials (default: false)
+   --force                      removes the temporary access token and forces the retrieval of a new token (default: false)
+   --debug                      enables debug logging (default: false)
+   --help, -h                   show help
+   --version, -v                print the version
 ```
 
 ---
@@ -196,7 +204,7 @@ GLOBAL OPTIONS:
 ```
 ./go-aws-sso
 
-2021/11/08 19:34:40 No Start URL given. Please set it now.
+2021/11/08 19:34:40 WARN No Start URL given. Please set it now.
 ✔ SSO Start URL: https://my-sso-login.awsapps.com
 Search: █
 ? Select your AWS Region. Hint: FuzzySearch supported: 
@@ -210,19 +218,19 @@ Search: █
     ap-northeast-3
     ap-northeast-2
     [...]
-2021/11/08 19:34:40 Config file generated: /home/theurichde/.config/go-aws-sso/config.yml
-2021/11/08 19:34:40 Please verify your client request: https://device.sso.eu-central-1.amazonaws.com/?user_code=USR-CDE
-2021/11/08 19:34:40 Still waiting for authorization...
+2021/11/08 19:34:40 INFO Config file generated: /home/theurichde/.config/go-aws-sso/config.yml
+2021/11/08 19:34:40 WARN Please verify your client request: https://device.sso.eu-central-1.amazonaws.com/?user_code=USR-CDE
+2021/11/08 19:34:40 INFO Still waiting for authorization...
 Search: 
 ? Select your account - Hint: fuzzy search supported. To choose one account directly just enter #{Int}: 
   ▸ #0 Awesome API - SDLC YYYYYXXXXXXX
     #1 Team Sandbox XXXXXXXXXXXX
     #2 Awesome API - Production YYYYYYYYYYYY
 
-2021/11/08 19:34:43 Selected account: Team Sandbox - XXXXXXXXXXXX
+2021/11/08 19:34:43 INFO Selected account: Team Sandbox - XXXXXXXXXXXX
 
-2021/11/08 19:34:43 Only one role available. Selected role: AWSAdministratorAccess
-2021/11/08 19:34:43 Credentials expire at: 2021-11-08 20:34:43 +0100 CET
+2021/11/08 19:34:43 INFO Only one role available. Selected role: AWSAdministratorAccess
+2021/11/08 19:34:43 INFO Credentials expire at: 2021-11-08 20:34:43 +0100 CET
 ```
 
 ---
