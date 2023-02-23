@@ -2,6 +2,7 @@ package sso
 
 import (
 	"encoding/json"
+	"gopkg.in/ini.v1"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -98,4 +99,41 @@ func createTempFile() string {
 	file, err := os.CreateTemp("", "write-client-info-test")
 	check(err)
 	return file.Name()
+}
+
+func TestWriteAWSCredentialsFile(t *testing.T) {
+
+	tmp, _ := os.CreateTemp("", "testCredentials")
+	defer os.Remove(tmp.Name())
+	CredentialsFilePath = tmp.Name()
+	init, _ := ini.Load(CredentialsFilePath)
+	initTemplate := CredentialsFileTemplate{
+		AwsAccessKeyId:     "dummyAwsAccessKeyId",
+		AwsSecretAccessKey: "dummyAwsSecretAccessKey",
+		AwsSessionToken:    "dummyAwsSessionToken",
+		Region:             "dummyRegion",
+	}
+
+	profile := "testProfile"
+	section, _ := init.NewSection(profile)
+	section.ReflectFrom(&initTemplate)
+
+	want := CredentialsFileTemplate{
+		CredentialProcess: "dummy credential process",
+		Region:            "eu-central-1",
+	}
+
+	t.Run("Already existing section with attributes should be completely replaced by new or adapted section", func(t *testing.T) {
+
+		WriteAWSCredentialsFile(&want, profile)
+
+		gotIni, _ := ini.Load(CredentialsFilePath)
+		gotSection, _ := gotIni.GetSection(profile)
+		got := CredentialsFileTemplate{}
+		gotSection.MapTo(&got)
+
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("got: %q, want: %q", got, want)
+		}
+	})
 }

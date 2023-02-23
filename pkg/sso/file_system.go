@@ -4,13 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"path"
-	"strings"
-
 	"github.com/aws/aws-sdk-go/service/sso"
 	"go.uber.org/zap"
 	"gopkg.in/ini.v1"
+	"os"
+	"path"
 )
 
 var CredentialsFilePath = GetCredentialsFilePath()
@@ -69,26 +67,19 @@ func writeIniFile(template *CredentialsFileTemplate, profile string) {
 	cfg, err := ini.Load(CredentialsFilePath)
 	check(err)
 
-	handleSection(template, profile, cfg)
+	recreateSection(template, profile, cfg)
 
 	zap.S().Debugf("Saving ini file to %s", CredentialsFilePath)
 	cfg.SaveTo(CredentialsFilePath)
 }
 
-func handleSection(template *CredentialsFileTemplate, profile string, cfg *ini.File) {
-	sec, err := cfg.GetSection(profile)
-	if err != nil {
-		if strings.Contains(err.Error(), fmt.Sprintf("section %q does not exist", profile)) {
-			zap.S().Debugf("Profile %s doesn't exist.", profile)
-			sec, err := cfg.NewSection(profile)
-			check(err)
-			err = sec.ReflectFrom(template)
-			zap.S().Debugf("Found %d sections", len(cfg.Sections()))
-		}
-	} else {
-		zap.S().Debugf("Section %s found, overwriting", profile)
-		sec.ReflectFrom(template)
-	}
+func recreateSection(template *CredentialsFileTemplate, profile string, cfg *ini.File) {
+	zap.S().Debugf("Deleting profile [%s] in credentials file", profile)
+	cfg.DeleteSection(profile)
+	sec, err := cfg.NewSection(profile)
+	check(err)
+	zap.S().Debugf("Reflecting profile [%s] in credentials file", profile)
+	err = sec.ReflectFrom(template)
 }
 
 // isFileOrFolderExisting
