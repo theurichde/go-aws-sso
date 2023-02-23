@@ -181,7 +181,7 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 	clientInformation := ProcessClientInformation(oidcClient, startUrl)
 
 	accountInfo, awsErr := RetrieveAccountInfo(clientInformation, ssoClient, promptSelector)
-	if awsErr != nil && awsErr.Code() == "401" { // unauthorized
+	if awsErr != nil && awsErr.StatusCode() == 401 { // unauthorized
 		clientInformation, accountInfo = retryWithNewClientCreds(oidcClient, ssoClient, startUrl, promptSelector)
 	}
 

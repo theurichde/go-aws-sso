@@ -33,12 +33,12 @@ func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInfo
 	return roleInfo
 }
 
-func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface.SSOAPI, selector Prompt) (*sso.AccountInfo, awserr.Error) {
+func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface.SSOAPI, selector Prompt) (*sso.AccountInfo, awserr.RequestFailure) {
 	var maxSize int64 = 1000 // default is 20, but sometimes you have more accounts available ;-)
 	lai := sso.ListAccountsInput{AccessToken: &clientInformation.AccessToken, MaxResults: &maxSize}
 	accounts, err := ssoClient.ListAccounts(&lai)
 	if err != nil {
-		if awsError, ok := err.(awserr.Error); ok {
+		if awsError, ok := err.(awserr.RequestFailure); ok {
 			return nil, awsError
 		}
 	}

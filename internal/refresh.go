@@ -39,7 +39,7 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 		if strings.Contains(err.Error(), "no such file") {
 			zap.S().Info("Nothing to refresh yet")
 			accountInfo, awsErr := RetrieveAccountInfo(clientInformation, ssoClient, Prompter{})
-			if awsErr != nil && awsErr.Code() == "401" { // unauthorized
+			if awsErr != nil && awsErr.StatusCode() == 401 { // unauthorized
 				clientInformation, accountInfo = retryWithNewClientCreds(oidcClient, ssoClient, startUrl)
 			}
 			roleInfo := RetrieveRoleInfo(accountInfo, clientInformation, ssoClient, Prompter{})
