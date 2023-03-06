@@ -140,11 +140,19 @@ OPTIONS:
      go-aws-sso config generate [command options] [arguments...]
   
   DESCRIPTION:
-     Generates a config file. All available properties are interactively prompted.
+     Generates a config file. All available properties are interactively prompted if not set with command options.
      Overrides the existing config file!
   
   OPTIONS:
-     --help, -h  show help (default: false)
+     --start-url value, -u value   set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)
+     --region value, -r value      set / override the AWS region
+     --profile value, -p value     the profile name you want to set in your ~/.aws/credentials file (default: "default")
+     --persist                     whether or not you want to write your short-living credentials to ~/.aws/credentials (default: false)
+     --force                       removes the temporary access token and forces the retrieval of a new token (default: false)
+     --debug                       enables debug logging (default: false)
+     --role-name value, -n value   The role name you want to assume
+     --account-id value, -a value  The account id where your role lives in
+     --help, -h                    show help
   ```
 
 </details>
