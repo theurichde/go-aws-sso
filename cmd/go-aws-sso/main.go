@@ -76,7 +76,7 @@ func main() {
 					Usage:       "Generate a config file",
 					Description: "Generates a config file. All available properties are interactively prompted if not set with command options.\nOverrides the existing config file!",
 					Action:      GenerateConfigAction,
-					Flags:       initialFlags,
+					Flags:       []cli.Flag{initialFlags[0], initialFlags[1]},
 				},
 				{
 					Name:        "edit",
