@@ -25,7 +25,7 @@ var (
 
 func main() {
 
-	initialFlags := []cli.Flag{
+	configFlags := []cli.Flag{
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:    "start-url",
 			Aliases: []string{"u"},
@@ -36,6 +36,9 @@ func main() {
 			Aliases: []string{"r"},
 			Usage:   "set / override the AWS region",
 		}),
+	}
+
+	initialFlags := []cli.Flag{
 		altsrc.NewStringFlag(&cli.StringFlag{
 			Name:    "profile",
 			Aliases: []string{"p"},
@@ -62,6 +65,8 @@ func main() {
 		},
 	}
 
+	initialFlags = append(configFlags, initialFlags...)
+
 	cli.VersionPrinter = func(c *cli.Context) {
 		fmt.Printf("Version: %s\nCommit: %s\nBuild Time: %s\n", version, commit, date)
 	}
@@ -74,8 +79,9 @@ func main() {
 				{
 					Name:        "generate",
 					Usage:       "Generate a config file",
-					Description: "Generates a config file. All available properties are interactively prompted.\nOverrides the existing config file!",
+					Description: "Generates a config file. All available properties are interactively prompted if not set with command options.\nOverrides the existing config file!",
 					Action:      GenerateConfigAction,
+					Flags:       configFlags,
 				},
 				{
 					Name:        "edit",

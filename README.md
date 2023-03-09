@@ -140,11 +140,13 @@ OPTIONS:
      go-aws-sso config generate [command options] [arguments...]
   
   DESCRIPTION:
-     Generates a config file. All available properties are interactively prompted.
+     Generates a config file. All available properties are interactively prompted if not set with command options.
      Overrides the existing config file!
   
   OPTIONS:
-     --help, -h  show help (default: false)
+     --start-url value, -u value   set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)
+     --region value, -r value      set / override the AWS region
+     --help, -h                    show help
   ```
 
 </details>

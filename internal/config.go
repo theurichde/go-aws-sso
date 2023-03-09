@@ -1,13 +1,14 @@
 package internal
 
 import (
+	"os"
+	"path"
+
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
-	"os"
-	"path"
 )
 
 type AppConfig struct {
@@ -27,11 +28,20 @@ func promptRegion(prompt Prompt) string {
 	return region
 }
 
-func GenerateConfigAction(_ *cli.Context) error {
+func GenerateConfigAction(context *cli.Context) error {
 
 	prompter := Prompter{}
-	startUrl := promptStartUrl(prompter, "")
-	region := promptRegion(prompter)
+	startUrl := context.String("start-url")
+	region := context.String("region")
+
+	if startUrl == "" {
+		startUrl = promptStartUrl(prompter, "")
+	}
+
+	if region == "" {
+		region = promptRegion(prompter)
+	}
+
 	appConfig := AppConfig{
 		StartUrl: startUrl,
 		Region:   region,
