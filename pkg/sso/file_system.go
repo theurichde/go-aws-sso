@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path"
+
 	"github.com/aws/aws-sdk-go/service/sso"
 	"go.uber.org/zap"
 	"gopkg.in/ini.v1"
-	"os"
-	"path"
 )
 
 var CredentialsFilePath = GetCredentialsFilePath()
@@ -34,8 +35,10 @@ func ProcessPersistedCredentialsTemplate(credentials *sso.GetRoleCredentialsOutp
 }
 
 func ProcessCredentialProcessTemplate(accountId string, roleName string, region string) CredentialsFileTemplate {
+	exeName, err := os.Executable()
+	check(err)
 	profileTemplate := CredentialsFileTemplate{
-		CredentialProcess: fmt.Sprintf("go-aws-sso assume -a %s -n %s", accountId, roleName),
+		CredentialProcess: fmt.Sprintf("%s assume -a %s -n %s", exeName, accountId, roleName),
 		Region:            region,
 	}
 	return profileTemplate
