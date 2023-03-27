@@ -1,10 +1,10 @@
 module github.com/theurichde/go-aws-sso
 
 require (
-	github.com/aws/aws-sdk-go v1.44.224
+	github.com/aws/aws-sdk-go v1.44.229
 	github.com/lithammer/fuzzysearch v1.1.5
 	github.com/manifoldco/promptui v0.9.0
-	github.com/urfave/cli/v2 v2.25.0
+	github.com/urfave/cli/v2 v2.25.1
 	github.com/valyala/fasttemplate v1.2.2
 	go.uber.org/zap v1.24.0
 	gopkg.in/ini.v1 v1.67.0
