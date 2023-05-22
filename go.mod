@@ -1,8 +1,8 @@
 module github.com/theurichde/go-aws-sso
 
 require (
-	github.com/aws/aws-sdk-go v1.44.262
-	github.com/lithammer/fuzzysearch v1.1.7
+	github.com/aws/aws-sdk-go v1.44.266
+	github.com/lithammer/fuzzysearch v1.1.8
 	github.com/manifoldco/promptui v0.9.0
 	github.com/urfave/cli/v2 v2.25.3
 	github.com/valyala/fasttemplate v1.2.2
@@ -23,7 +23,7 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/sys v0.5.0 // indirect
-	golang.org/x/text v0.8.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
