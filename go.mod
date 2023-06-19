@@ -1,10 +1,10 @@
 module github.com/theurichde/go-aws-sso
 
 require (
-	github.com/aws/aws-sdk-go v1.44.280
+	github.com/aws/aws-sdk-go v1.44.284
 	github.com/lithammer/fuzzysearch v1.1.8
 	github.com/manifoldco/promptui v0.9.0
-	github.com/urfave/cli/v2 v2.25.5
+	github.com/urfave/cli/v2 v2.25.7
 	github.com/valyala/fasttemplate v1.2.2
 	go.uber.org/zap v1.24.0
 	gopkg.in/ini.v1 v1.67.0
@@ -12,7 +12,7 @@ require (
 )
 
 require (
-	github.com/BurntSushi/toml v1.2.1 // indirect
+	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
