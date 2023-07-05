@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"github.com/chzyer/readline"
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	"github.com/manifoldco/promptui"
 	"strings"
@@ -14,6 +15,21 @@ type Prompt interface {
 type Prompter struct {
 }
 
+type noBellStdout struct{}
+
+func (n *noBellStdout) Write(p []byte) (int, error) {
+	if len(p) == 1 && p[0] == readline.CharBell {
+		return 0, nil
+	}
+	return readline.Stdout.Write(p)
+}
+
+func (n *noBellStdout) Close() error {
+	return readline.Stdout.Close()
+}
+
+var NoBellStdout = &noBellStdout{}
+
 func (p Prompter) Select(label string, toSelect []string, searcher func(input string, index int) bool) (int, string) {
 	prompt := promptui.Select{
 		Label:             label,
@@ -21,7 +37,9 @@ func (p Prompter) Select(label string, toSelect []string, searcher func(input st
 		Size:              20,
 		Searcher:          searcher,
 		StartInSearchMode: true,
+		Stdout:            NoBellStdout,
 	}
+
 	index, value, err := prompt.Run()
 	check(err)
 	return index, value
