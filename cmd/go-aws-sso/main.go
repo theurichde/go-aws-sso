@@ -242,9 +242,14 @@ func applyForceFlag(context *cli.Context) {
 	if context.Bool("force") {
 		err := os.Remove(ClientInfoFileDestination())
 		if err != nil {
-			zap.S().Infof("Nothing to do, temporary acces token found")
+			zap.S().Infof("Nothing to do, no temporary acces token found")
 		}
-		zap.S().Infof("Successful removed temporary acces token")
+		zap.S().Infof("Removed temporary acces token")
+		err = os.Remove(os.TempDir() + "/go-aws-sso.lock")
+		if err != nil {
+			zap.S().Debugf("Nothing to do, no temporary lock file found")
+		}
+		zap.S().Infof("Removed temporary lock file")
 	}
 }
 
