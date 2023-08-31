@@ -256,6 +256,9 @@ func initializeLogger(context *cli.Context) {
 	config.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	logLevel := zapcore.InfoLevel
 
+	stdOut := zapcore.Lock(os.Stdout)
+	stdErr := zapcore.Lock(os.Stderr)
+
 	var options []zap.Option
 	if context.Bool("debug") {
 		logLevel = zapcore.DebugLevel
@@ -265,8 +268,18 @@ func initializeLogger(context *cli.Context) {
 		options = append(options, zap.AddStacktrace(zap.ErrorLevel))
 	}
 
+	infoLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+		return lvl >= logLevel && lvl <= zapcore.ErrorLevel
+	})
+
+	errorFatalLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+		return lvl == zapcore.ErrorLevel || lvl == zapcore.FatalLevel
+	})
+
 	encoder := zapcore.NewConsoleEncoder(config)
-	core := zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), logLevel)
+	core := zapcore.NewTee(
+		zapcore.NewCore(encoder, stdOut, infoLevel),
+		zapcore.NewCore(encoder, stdErr, errorFatalLevel))
 	logger := zap.New(core, options...)
 	logger.Sync()
 	zap.ReplaceGlobals(logger)
