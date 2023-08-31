@@ -1,6 +1,8 @@
 package sso
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -103,15 +105,27 @@ func (ati ClientInformation) isExpired() bool {
 func ProcessClientInformation(oidcClient ssooidciface.SSOOIDCAPI, startUrl string) ClientInformation {
 	clientInformation, err := ReadClientInformation(ClientInfoFileDestination())
 	if err != nil || clientInformation.StartUrl != startUrl {
-		zap.S().Debugf("Encountered error while reading client information: %s", err)
-		var clientInfoPointer *ClientInformation
-		clientInfoPointer = registerClient(oidcClient, startUrl)
-		clientInfoPointer = retrieveToken(oidcClient, Time{}, clientInfoPointer)
-		WriteStructToFile(clientInfoPointer, ClientInfoFileDestination())
-		clientInformation = *clientInfoPointer
+		if isAuthorizationFlowLocked() {
+			zap.S().Fatal("There is already an authorization flow running")
+		} else {
+			lockAuthorizationFlow()
+			defer unlockAuthorizationFlow()
+			zap.S().Debugf("Encountered error while reading client information: %s", err)
+			var clientInfoPointer *ClientInformation
+			clientInfoPointer = registerClient(oidcClient, startUrl)
+			clientInfoPointer = retrieveToken(oidcClient, Time{}, clientInfoPointer)
+			WriteStructToFile(clientInfoPointer, ClientInfoFileDestination())
+			clientInformation = *clientInfoPointer
+		}
 	} else if clientInformation.isExpired() {
-		zap.S().Info("AccessToken expired. Start retrieving a new AccessToken")
-		clientInformation = handleOutdatedAccessToken(clientInformation, oidcClient, startUrl)
+		if isAuthorizationFlowLocked() {
+			zap.S().Fatal("There is already an authorization flow running")
+		} else {
+			lockAuthorizationFlow()
+			defer unlockAuthorizationFlow()
+			zap.S().Info("AccessToken expired. Start retrieving a new AccessToken")
+			clientInformation = handleOutdatedAccessToken(clientInformation, oidcClient, startUrl)
+		}
 	}
 	return clientInformation
 }
@@ -126,20 +140,16 @@ func handleOutdatedAccessToken(clientInformation ClientInformation, oidcClient s
 }
 
 func generateCreateTokenInput(clientInformation *ClientInformation) ssooidc.CreateTokenInput {
-	gtp := grantType
 	return ssooidc.CreateTokenInput{
 		ClientId:     &clientInformation.ClientId,
 		ClientSecret: &clientInformation.ClientSecret,
 		DeviceCode:   &clientInformation.DeviceCode,
-		GrantType:    &gtp,
+		GrantType:    aws.String(grantType),
 	}
 }
 
 func registerClient(oidc ssooidciface.SSOOIDCAPI, startUrl string) *ClientInformation {
-	cn := clientName
-	ct := clientType
-
-	rci := ssooidc.RegisterClientInput{ClientName: &cn, ClientType: &ct}
+	rci := ssooidc.RegisterClientInput{ClientName: aws.String(clientName), ClientType: aws.String(clientType)}
 	rco, err := oidc.RegisterClient(&rci)
 	check(err)
 
@@ -208,7 +218,8 @@ func retrieveToken(client ssooidciface.SSOOIDCAPI, timer Timer, info *ClientInfo
 	for {
 		cto, err := client.CreateToken(&input)
 		if err != nil {
-			if awsErr, ok := err.(awserr.Error); ok {
+			var awsErr awserr.Error
+			if errors.As(err, &awsErr) {
 				if awsErr.Code() == "AuthorizationPendingException" {
 					zap.S().Infof("Still waiting for authorization...")
 					time.Sleep(3 * time.Second)
@@ -223,4 +234,45 @@ func retrieveToken(client ssooidciface.SSOOIDCAPI, timer Timer, info *ClientInfo
 			return info
 		}
 	}
+}
+
+type lockfile struct {
+	LockTime time.Time `json:"lockTime"`
+}
+
+func unlockAuthorizationFlow() {
+	_ = os.Remove(os.TempDir() + "/go-aws-sso.lock")
+}
+
+func lockAuthorizationFlow() {
+	lf := lockfile{LockTime: time.Now()}
+	lockBytes, err := json.Marshal(lf)
+	if err != nil {
+		zap.S().Error("Something went wrong while marshalling the temporary lock file", err)
+	}
+
+	err = os.WriteFile(os.TempDir()+"/go-aws-sso.lock", lockBytes, 0644)
+	if err != nil {
+		zap.S().Error("Something went wrong writing the temporary lock file", err)
+	}
+}
+
+func isAuthorizationFlowLocked() bool {
+	lockBytes, err := os.ReadFile(os.TempDir() + "/go-aws-sso.lock")
+	var pathError *os.PathError
+	if err != nil {
+		if errors.As(err, &pathError) {
+			zap.S().Debug("No lock file found")
+			return false
+		}
+		zap.S().Error("Something went wrong while reading the temporary lock file", err)
+	}
+	lf := lockfile{}
+	err = json.Unmarshal(lockBytes, &lf)
+	if err != nil {
+		zap.S().Error("Something went wrong while unmarshalling the temporary lock file", err)
+		return false
+	}
+
+	return time.Now().Before(lf.LockTime.Add(time.Minute))
 }
