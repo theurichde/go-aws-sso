@@ -20,6 +20,7 @@ Make working with AWS SSO on local machines an ease.
 * Choose your desired account and role interactively
 * Choose your account and role via flags from command line
 * Utilize AWSs `credential_process` to avoid storing credentials locally
+  * Locks concurrent calls to `credential_process` to no DDoS your Browser (this behaviour occurs from time to time when using e.g. the k8s plugin for IntelliJ)   
 * Refresh credentials based on your previously chosen account and role (if you've chosen to persist your credentials)
 * Store your Start-URL and region
 * Set different profiles for your different accounts
@@ -107,6 +108,8 @@ OPTIONS:
 ```
 
 ### Configuration
+
+* If you want to point to a specific non-default Browser, do so via the `BROWSER` environment variable
 
 <details><summary>Basics</summary>
 
