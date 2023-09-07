@@ -175,8 +175,17 @@ func startDeviceAuthorization(oidc ssooidciface.SSOOIDCAPI, rco *ssooidc.Registe
 
 func openUrlInBrowser(url string) {
 	var err error
-	osName := determineOsName()
 
+	if env, ok := os.LookupEnv("BROWSER"); ok {
+		zap.S().Debugf("using BROWSER environment variable: %s", env)
+		err = exec.Command(env, url).Start()
+		if err != nil {
+			zap.S().Fatalf("error while opening browser: %s", err)
+		}
+		return
+	}
+
+	osName := determineOsName()
 	switch osName {
 	case "linux":
 		err = exec.Command("xdg-open", url).Start()
@@ -187,7 +196,7 @@ func openUrlInBrowser(url string) {
 	case "wsl":
 		err = exec.Command("wslview", url).Start()
 	default:
-		err = fmt.Errorf("could not open %s - unsupported platform. Please open the URL manually", url)
+		err = fmt.Errorf("could not open %s - unsupported platform. Please open the URL manually or use the BROWSER environemnt variable to point to your browser", url)
 	}
 	if err != nil {
 		zap.S().Error(err)
