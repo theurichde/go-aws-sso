@@ -53,8 +53,9 @@ func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface
 		accountsToSelect = append(accountsToSelect, linePrefix+strconv.Itoa(i)+" "+*info.AccountName+" "+*info.AccountId)
 	}
 
-	label := "Select your account - Hint: fuzzy search supported. To choose one account directly just enter #{Int}"
-	indexChoice, _ := selector.Select(label, accountsToSelect, fuzzySearchWithPrefixAnchor(accountsToSelect, linePrefix))
+	fmt.Println("Hint: fuzzy search supported. To choose one account directly just enter #{Int}.")
+
+	indexChoice, _ := selector.Select("Select your account", accountsToSelect, fuzzySearchWithPrefixAnchor(accountsToSelect, linePrefix))
 
 	fmt.Println()
 
