@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - '**.go'
+      - '.github/workflows/build-and-test.yaml'
 
 jobs:
   build:
