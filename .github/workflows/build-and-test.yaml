@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - '**.go'
+      - 'go.mod'
+      - 'go.sum'
       - '.github/workflows/build-and-test.yaml'
 
 jobs:
