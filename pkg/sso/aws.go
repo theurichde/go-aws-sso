@@ -25,6 +25,7 @@ import (
 const grantType = "urn:ietf:params:oauth:grant-type:device_code"
 const clientType = "public"
 const clientName = "go-aws-sso"
+const lockedAuthFlowMsg = "There is already an authorization flow running. If you think that is wrong, try using --force"
 
 var AwsRegions = []string{
 	"us-east-2",
@@ -103,23 +104,23 @@ func (ati ClientInformation) isExpired() bool {
 // If the start url is overridden and differs from the previous one, a new Client is registered for the given start url.
 // When the ClientInformation.AccessToken is expired, it starts retrieving a new AccessToken
 func ProcessClientInformation(oidcClient ssooidciface.SSOOIDCAPI, startUrl string) ClientInformation {
+	if isAuthorizationFlowLocked() {
+		zap.S().Fatal(lockedAuthFlowMsg)
+	}
+
 	clientInformation, err := ReadClientInformation(ClientInfoFileDestination())
 	if err != nil || clientInformation.StartUrl != startUrl {
-		if isAuthorizationFlowLocked() {
-			zap.S().Fatal("There is already an authorization flow running")
-		} else {
-			lockAuthorizationFlow()
-			defer unlockAuthorizationFlow()
-			zap.S().Debugf("Encountered error while reading client information: %s", err)
-			var clientInfoPointer *ClientInformation
-			clientInfoPointer = registerClient(oidcClient, startUrl)
-			clientInfoPointer = retrieveToken(oidcClient, Time{}, clientInfoPointer)
-			WriteStructToFile(clientInfoPointer, ClientInfoFileDestination())
-			clientInformation = *clientInfoPointer
-		}
+		lockAuthorizationFlow()
+		defer unlockAuthorizationFlow()
+		zap.S().Debugf("Encountered error while reading client information: %s", err)
+		var clientInfoPointer *ClientInformation
+		clientInfoPointer = registerClient(oidcClient, startUrl)
+		clientInfoPointer = retrieveToken(oidcClient, Time{}, clientInfoPointer)
+		WriteStructToFile(clientInfoPointer, ClientInfoFileDestination())
+		clientInformation = *clientInfoPointer
 	} else if clientInformation.isExpired() {
 		if isAuthorizationFlowLocked() {
-			zap.S().Fatal("There is already an authorization flow running")
+			zap.S().Fatal(lockedAuthFlowMsg)
 		} else {
 			lockAuthorizationFlow()
 			defer unlockAuthorizationFlow()

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -96,6 +97,7 @@ func main() {
 			Usage:       "Refresh your previously used credentials.",
 			Description: "Refreshes the short living credentials based on your last account and role.",
 			Action: func(context *cli.Context) error {
+				initializeLogger(context)
 				checkMandatoryFlags(context)
 				applyForceFlag(context)
 				oidcApi, ssoApi := InitClients(context.String("region"))
@@ -110,6 +112,7 @@ func main() {
 			Usage:       "Assume directly into an account and SSO role",
 			Description: "Assume directly into an account and SSO role",
 			Action: func(context *cli.Context) error {
+				initializeLogger(context)
 				checkMandatoryFlags(context)
 				applyForceFlag(context)
 				oidcApi, ssoApi := InitClients(context.String("region"))
@@ -242,7 +245,7 @@ func applyForceFlag(context *cli.Context) {
 	if context.Bool("force") {
 		err := os.Remove(ClientInfoFileDestination())
 		if err != nil {
-			zap.S().Infof("Nothing to do, no temporary acces token found")
+			zap.S().Infof("Nothing to do, no temporary access token found")
 		}
 		zap.S().Infof("Removed temporary acces token")
 		err = os.Remove(os.TempDir() + "/go-aws-sso.lock")
@@ -286,7 +289,10 @@ func initializeLogger(context *cli.Context) {
 		zapcore.NewCore(encoder, stdOut, infoLevel),
 		zapcore.NewCore(encoder, stdErr, errorFatalLevel))
 	logger := zap.New(core, options...)
-	logger.Sync()
+	err := logger.Sync()
+	if err != nil {
+		log.Fatalf("Error while initializing logger: %s)", err)
+	}
 	zap.ReplaceGlobals(logger)
 
 	zap.S().Debug("Debug logging enabled")
