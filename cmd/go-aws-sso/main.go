@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -289,10 +288,6 @@ func initializeLogger(context *cli.Context) {
 		zapcore.NewCore(encoder, stdOut, infoLevel),
 		zapcore.NewCore(encoder, stdErr, errorFatalLevel))
 	logger := zap.New(core, options...)
-	err := logger.Sync()
-	if err != nil {
-		log.Fatalf("Error while initializing logger: %s)", err)
-	}
 	zap.ReplaceGlobals(logger)
 
 	zap.S().Debug("Debug logging enabled")
