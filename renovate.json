@@ -9,6 +9,6 @@
     ":renovatePrefix",
     ":semanticCommits",
     "group:allNonMajor",
-    "schedule:weekly"
+    "schedule:monthly"
   ]
 }
