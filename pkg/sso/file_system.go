@@ -38,7 +38,7 @@ func ProcessCredentialProcessTemplate(accountId string, roleName string, region 
 	exeName, err := os.Executable()
 	check(err)
 	profileTemplate := CredentialsFileTemplate{
-		CredentialProcess: fmt.Sprintf("%s assume -a %s -n %s", exeName, accountId, roleName),
+		CredentialProcess: fmt.Sprintf("%s assume -q -a %s -n %s", exeName, accountId, roleName),
 		Region:            region,
 	}
 	return profileTemplate

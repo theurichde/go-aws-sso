@@ -67,15 +67,16 @@ DESCRIPTION:
    Assume directly into an account and SSO role
 
 OPTIONS:
-   --start-url value, -u value   set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)
-   --region value, -r value      set / override the AWS region
-   --profile value, -p value     the profile name you want to set in your ~/.aws/credentials file (default: "default")
-   --persist                     whether or not you want to write your short-living credentials to ~/.aws/credentials (default: false)
-   --force                       removes the temporary access token and forces the retrieval of a new token (default: false)
-   --debug                       enables debug logging (default: false)
-   --role-name value, -n value   The role name you want to assume
-   --account-id value, -a value  The account id where your role lives in
-   --help, -h                    show help
+   --start-url value, -u value     set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)
+   --region value, -r value        set / override the AWS region
+   --profile value, -p value       the profile name you want to set in your ~/.aws/credentials file (default: "default")
+   --persist                       whether or not you want to write your short-living credentials to ~/.aws/credentials (default: false)
+   --force                         removes the temporary access token and forces the retrieval of a new token (default: false)
+   --debug                         enables debug logging (default: false)
+   --role-name value, -n value     The role name you want to assume
+   --account-id value, -a value    The account id where your role lives in
+   --quiet, -q, --non-interactive  disables logger output (default: false)
+   --help, -h                      show help
 ```
 
 * Execute `go-aws-sso assume --account-id YOUR_ID --role-name YOUR_ROLE_NAME`

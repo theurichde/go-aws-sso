@@ -130,6 +130,14 @@ func main() {
 					Aliases: []string{"a"},
 					Usage:   "The account id where your role lives in",
 				}),
+				&cli.BoolFlag{
+					Name:     "quiet",
+					Usage:    "disables logger output",
+					Aliases:  []string{"q", "non-interactive"},
+					Value:    false,
+					Hidden:   false,
+					Required: false,
+				},
 			}...),
 		},
 	}
@@ -256,6 +264,10 @@ func applyForceFlag(context *cli.Context) {
 }
 
 func initializeLogger(context *cli.Context) {
+	if context.Bool("quiet") {
+		zap.ReplaceGlobals(zap.NewNop())
+		return
+	}
 	config := zap.NewProductionEncoderConfig()
 	config.EncodeTime = zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05")
 

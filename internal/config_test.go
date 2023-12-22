@@ -4,7 +4,6 @@ import (
 	"flag"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
-	"io/ioutil"
 	"os"
 	"path"
 	"reflect"
@@ -52,7 +51,7 @@ func TestWriteConfig(t *testing.T) {
 			configFile, err := os.Open(tempFile)
 			fail(err, t)
 
-			bytes, err := ioutil.ReadFile(configFile.Name())
+			bytes, err := os.ReadFile(configFile.Name())
 			fail(err, t)
 
 			gotAppConfig := AppConfig{}
