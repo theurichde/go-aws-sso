@@ -75,7 +75,7 @@ OPTIONS:
    --debug                         enables debug logging (default: false)
    --role-name value, -n value     The role name you want to assume
    --account-id value, -a value    The account id where your role lives in
-   --quiet, -q          disables logger output (default: false)
+   --quiet, -q                     disables logger output (default: false)
    --help, -h                      show help
 ```
 
