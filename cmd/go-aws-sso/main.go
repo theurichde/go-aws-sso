@@ -133,7 +133,7 @@ func main() {
 				&cli.BoolFlag{
 					Name:     "quiet",
 					Usage:    "disables logger output",
-					Aliases:  []string{"q", "non-interactive"},
+					Aliases:  []string{"q"},
 					Value:    false,
 					Hidden:   false,
 					Required: false,
