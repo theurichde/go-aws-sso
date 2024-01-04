@@ -35,5 +35,9 @@ jobs:
           go vet github.com/theurichde/go-aws-sso/internal
       - name: Tests
         run: |
+          go clean -r -testcache
+          go clean -r -x -modcache
+          go clean -r -x -testcache
+          go clean -r -x -cache
           go test -v ./...
           go test -v github.com/theurichde/go-aws-sso/internal

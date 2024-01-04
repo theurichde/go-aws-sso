@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"os"
 	"testing"
 	"time"
@@ -61,10 +63,14 @@ func (t mockTime) Now() time.Time {
 }
 
 func Test_start(t *testing.T) {
-
+	os.Remove(os.TempDir() + "/go-aws-sso.lock")
 	temp, err := os.CreateTemp("", "go-aws-sso_start")
 	check(err)
 	CredentialsFilePath = temp.Name()
+	defer func(path string) {
+		os.RemoveAll(path)
+		os.Remove(os.TempDir() + "/go-aws-sso.lock")
+	}(CredentialsFilePath)
 
 	dummyInt := int64(132465)
 	dummy := "dummy"
@@ -153,9 +159,6 @@ func Test_start(t *testing.T) {
 	if got != want {
 		t.Errorf("Got: %v, but wanted: %v", got, want)
 	}
-
-	defer os.RemoveAll(CredentialsFilePath)
-
 }
 
 type mockPromptUISelector struct {
@@ -167,4 +170,123 @@ func (receiver mockPromptUISelector) Select(_ string, _ []string, _ func(input s
 
 func (receiver mockPromptUISelector) Prompt(_ string, _ string) string {
 	return ""
+}
+
+func Test_initializeLogger(t *testing.T) {
+	type levelsEnabled struct {
+		fatal bool
+		error bool
+		warn  bool
+		info  bool
+		debug bool
+	}
+	tests := []struct {
+		name  string
+		flags []string
+		want  levelsEnabled
+	}{
+		{
+			name:  "default",
+			flags: []string{},
+			want: levelsEnabled{
+				fatal: true,
+				error: true,
+				warn:  true,
+				info:  true,
+				debug: false,
+			},
+		},
+		{
+			name:  "debug flag only",
+			flags: []string{"--debug"},
+			want: levelsEnabled{
+				fatal: true,
+				error: true,
+				warn:  true,
+				info:  true,
+				debug: true,
+			},
+		},
+		{
+			name:  "quiet flag only",
+			flags: []string{"--quiet"},
+			want: levelsEnabled{
+				fatal: false,
+				error: false,
+				warn:  false,
+				info:  false,
+				debug: false,
+			},
+		},
+		{
+			name:  "quiet flag alias only",
+			flags: []string{"-q"},
+			want: levelsEnabled{
+				fatal: false,
+				error: false,
+				warn:  false,
+				info:  false,
+				debug: false,
+			},
+		},
+		{
+			name:  "quiet flag alternate alias only",
+			flags: []string{"--non-interactive"},
+			want: levelsEnabled{
+				fatal: false,
+				error: false,
+				warn:  false,
+				info:  false,
+				debug: false,
+			},
+		},
+		{
+			name:  "quiet flag overrides debug flag",
+			flags: []string{"--debug", "--quiet"},
+			want: levelsEnabled{
+				fatal: false,
+				error: false,
+				warn:  false,
+				info:  false,
+				debug: false,
+			},
+		},
+	}
+	// replace the zap logger with a temporary instance
+	emptyLogger := &zap.Logger{}
+	reset := zap.ReplaceGlobals(emptyLogger)
+	defer reset()
+	for _, tt := range tests {
+		zap.ReplaceGlobals(emptyLogger)
+		t.Run(tt.name, func(t *testing.T) {
+			flagSet := flag.NewFlagSet("test-set", flag.ContinueOnError)
+			flagSet.Bool("debug", false, "")
+			flagPtr := flagSet.Bool("quiet", false, "")
+			flagSet.BoolVar(flagPtr, "q", false, "")
+			flagSet.BoolVar(flagPtr, "non-interactive", false, "")
+
+			err := flagSet.Parse(tt.flags)
+			if err != nil {
+				t.Fatal(err)
+			}
+			context := cli.NewContext(nil, flagSet, nil)
+
+			initializeLogger(context)
+			initializedLogger := zap.L()
+			if initializedLogger == emptyLogger {
+				t.Errorf("initializeLogger() did not initialize the logger")
+			}
+			// check if the logger is enabled for the desired levels
+			gotLevels := levelsEnabled{
+				fatal: initializedLogger.Core().Enabled(zapcore.FatalLevel),
+				error: initializedLogger.Core().Enabled(zapcore.ErrorLevel),
+				warn:  initializedLogger.Core().Enabled(zapcore.WarnLevel),
+				info:  initializedLogger.Core().Enabled(zapcore.InfoLevel),
+				debug: initializedLogger.Core().Enabled(zapcore.DebugLevel),
+			}
+			if tt.want != gotLevels {
+				t.Errorf("Got: %v, but wanted: %v", gotLevels, tt.want)
+			}
+		})
+	}
 }
