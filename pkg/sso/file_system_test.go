@@ -2,11 +2,13 @@ package sso
 
 import (
 	"encoding/json"
-	"gopkg.in/ini.v1"
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
 	"time"
+
+	"gopkg.in/ini.v1"
 )
 
 func Test_isFileExisting(t *testing.T) {
@@ -135,4 +137,52 @@ func TestWriteAWSCredentialsFile(t *testing.T) {
 			t.Errorf("got: %q, want: %q", got, want)
 		}
 	})
+}
+
+func TestProcessCredentialProcessTemplateWithExeName(t *testing.T) {
+	testCases := []struct {
+		name         string
+		exeName      string
+		accountId    string
+		roleName     string
+		region       string
+		fileTemplate CredentialsFileTemplate
+	}{
+		{
+			name:      "exe name has special characters",
+			exeName:   "@exe#name$",
+			accountId: "accountid",
+			roleName:  "rolename",
+			region:    "region",
+			fileTemplate: CredentialsFileTemplate{
+				CredentialProcess: fmt.Sprintf("@exe#name$ assume -q -a accountid -n rolename"),
+				Region:            "region",
+			},
+		},
+		{
+			name:      "exe name has spaces",
+			exeName:   "e x e name",
+			accountId: "accountid",
+			roleName:  "rolename",
+			region:    "region",
+			fileTemplate: CredentialsFileTemplate{
+				CredentialProcess: fmt.Sprintf("e x e name assume -q -a accountid -n rolename"),
+				Region:            "region",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			fileTemplate := processCredentialProcessTemplateWithExeName(
+				tc.exeName,
+				tc.accountId,
+				tc.roleName,
+				tc.region,
+			)
+			if fileTemplate != tc.fileTemplate {
+				t.Errorf("File template is not equal. Got: %+v, want: %+v", fileTemplate, tc.fileTemplate)
+			}
+		})
+	}
 }
