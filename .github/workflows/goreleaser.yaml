@@ -33,7 +33,7 @@ jobs:
           go test -v github.com/theurichde/go-aws-sso/internal
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         if: success() && startsWith(github.ref, 'refs/tags/')
         with:
           version: latest
