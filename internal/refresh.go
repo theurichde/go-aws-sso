@@ -34,7 +34,6 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 	var roleName *string
 
 	lui, err := readUsageInformation()
-	zap.S().Infof("Attempting to refresh credentials for account [%s] with role [%s]", lui.AccountName, lui.Role)
 	if err != nil {
 		if strings.Contains(err.Error(), "no such file") {
 			zap.S().Info("Nothing to refresh yet")
@@ -50,6 +49,7 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 	} else {
 		accountId = &lui.AccountId
 		roleName = &lui.Role
+		zap.S().Infof("Attempting to refresh credentials for account [%s] with role [%s]", *accountId, *roleName)
 	}
 
 	rci := &sso.GetRoleCredentialsInput{AccountId: accountId, RoleName: roleName, AccessToken: &clientInformation.AccessToken}
