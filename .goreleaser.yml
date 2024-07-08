@@ -1,5 +1,8 @@
 # .goreleaser.yml
 project_name: go-aws-sso
+
+version: 2
+
 builds:
   - env: [ CGO_ENABLED=0 ]
     goos:
@@ -17,7 +20,5 @@ release:
   draft: true
 
 changelog:
-  skip: false
-
   use: git
   sort: asc
