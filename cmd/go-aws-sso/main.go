@@ -63,6 +63,13 @@ func main() {
 			Hidden:   false,
 			Required: false,
 		},
+		&cli.BoolFlag{
+			Name:     "headless",
+			Usage:    "starts with headless mode",
+			Value:    false,
+			Hidden:   false,
+			Required: false,
+		},
 	}
 
 	initialFlags = append(configFlags, initialFlags...)

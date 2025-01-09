@@ -177,6 +177,12 @@ func startDeviceAuthorization(oidc ssooidciface.SSOOIDCAPI, rco *ssooidc.Registe
 func openUrlInBrowser(url string) {
 	var err error
 
+	// ignore when useing headless mode
+	if strings.Contains(strings.Join(os.Args, ","), "--headless") {
+		zap.S().Infof("using headless mode")
+		return
+	}
+
 	if env, ok := os.LookupEnv("BROWSER"); ok {
 		zap.S().Debugf("using BROWSER environment variable: %s", env)
 		err = exec.Command(env, url).Start()
