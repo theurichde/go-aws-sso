@@ -171,7 +171,7 @@ func startDeviceAuthorization(oidc ssooidciface.SSOOIDCAPI, rco *ssooidc.Registe
 	check(err)
 	zap.S().Warnf("Please verify your client request: %s", *sdao.VerificationUriComplete)
 
-	// ignore open browser
+	// skip opening it in a browser
 	if !strings.Contains(strings.Join(os.Args, ","), "--headless") {
 		openUrlInBrowser(*sdao.VerificationUriComplete)
 	}
