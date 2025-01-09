@@ -65,7 +65,7 @@ func main() {
 		},
 		&cli.BoolFlag{
 			Name:     "headless",
-			Usage:    "starts with headless mode",
+			Usage:    "show the verification URL without opening it in a browser",
 			Value:    false,
 			Hidden:   false,
 			Required: false,
