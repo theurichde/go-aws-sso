@@ -170,7 +170,12 @@ func startDeviceAuthorization(oidc ssooidciface.SSOOIDCAPI, rco *ssooidc.Registe
 	sdao, err := oidc.StartDeviceAuthorization(&ssooidc.StartDeviceAuthorizationInput{ClientId: rco.ClientId, ClientSecret: rco.ClientSecret, StartUrl: &startUrl})
 	check(err)
 	zap.S().Warnf("Please verify your client request: %s", *sdao.VerificationUriComplete)
-	openUrlInBrowser(*sdao.VerificationUriComplete)
+
+	//  open it in a browser unless in headless mode
+	if !strings.Contains(strings.Join(os.Args, ","), "--headless") {
+		openUrlInBrowser(*sdao.VerificationUriComplete)
+	}
+
 	return *sdao
 }
 

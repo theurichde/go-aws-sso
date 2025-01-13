@@ -63,6 +63,13 @@ func main() {
 			Hidden:   false,
 			Required: false,
 		},
+		&cli.BoolFlag{
+			Name:     "headless",
+			Usage:    "show the verification URL without opening it in a browser",
+			Value:    false,
+			Hidden:   false,
+			Required: false,
+		},
 	}
 
 	initialFlags = append(configFlags, initialFlags...)
