@@ -38,11 +38,12 @@ func AssumeDirectly(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAP
 		creds := CredentialProcessOutput{
 			Version:         1,
 			AccessKeyId:     *roleCredentials.RoleCredentials.AccessKeyId,
-			Expiration:      time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+			Expiration:      time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0).Format(time.RFC3339),
 			SecretAccessKey: *roleCredentials.RoleCredentials.SecretAccessKey,
 			SessionToken:    *roleCredentials.RoleCredentials.SessionToken,
 		}
-		bytes, _ := json.Marshal(creds)
+		bytes, err := json.Marshal(creds)
+		check(err)
 		_, err = os.Stdout.Write(bytes)
 		check(err)
 	}
