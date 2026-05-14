@@ -34,15 +34,15 @@ func ProcessPersistedCredentialsTemplate(credentials *sso.GetRoleCredentialsOutp
 	return profileTemplate
 }
 
-func ProcessCredentialProcessTemplate(accountId string, roleName string, region string) CredentialsFileTemplate {
+func ProcessCredentialProcessTemplate(accountId string, roleName string, region string, profile string) CredentialsFileTemplate {
 	exeName, err := os.Executable()
 	check(err)
-	return processCredentialProcessTemplateWithExeName(exeName, accountId, roleName, region)
+	return processCredentialProcessTemplateWithExeName(exeName, accountId, roleName, region, profile)
 }
 
-func processCredentialProcessTemplateWithExeName(exeName string, accountId string, roleName string, region string) CredentialsFileTemplate {
+func processCredentialProcessTemplateWithExeName(exeName string, accountId string, roleName string, region string, profile string) CredentialsFileTemplate {
 	profileTemplate := CredentialsFileTemplate{
-		CredentialProcess: fmt.Sprintf("%s assume -q -a %s -n %s", exeName, accountId, roleName),
+		CredentialProcess: fmt.Sprintf("%s assume -q -a %s -n %s -p %s", exeName, accountId, roleName, profile),
 		Region:            region,
 	}
 	return profileTemplate
