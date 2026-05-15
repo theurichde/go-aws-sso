@@ -201,6 +201,7 @@ func readConfigFile(flags []cli.Flag) cli.BeforeFunc {
 func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context, promptSelector Prompt) {
 
 	startUrl := context.String("start-url")
+	LoadRuntimeConfig(context.Bool("headless"))
 	clientInformation := ProcessClientInformation(oidcClient, startUrl)
 
 	accountInfo, awsErr := RetrieveAccountInfo(clientInformation, ssoClient, promptSelector)
@@ -266,13 +267,15 @@ func applyForceFlag(context *cli.Context) {
 		err := os.Remove(ClientInfoFileDestination())
 		if err != nil {
 			zap.S().Infof("Nothing to do, no temporary access token found")
+		} else {
+			zap.S().Infof("Removed temporary access token")
 		}
-		zap.S().Infof("Removed temporary access token")
 		err = os.Remove(os.TempDir() + "/go-aws-sso.lock")
 		if err != nil {
 			zap.S().Debugf("Nothing to do, no temporary lock file found")
+		} else {
+			zap.S().Infof("Removed temporary lock file")
 		}
-		zap.S().Infof("Removed temporary lock file")
 	}
 }
 

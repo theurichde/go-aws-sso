@@ -17,6 +17,7 @@ import (
 // Directly assumes into a certain account and role, bypassing the prompt and interactive selection.
 func AssumeDirectly(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context) {
 	startUrl := context.String("start-url")
+	LoadRuntimeConfig(context.Bool("headless"))
 	accountId := context.String("account-id")
 	roleName := context.String("role-name")
 	clientInformation := ProcessClientInformation(oidcClient, startUrl)
