@@ -34,17 +34,28 @@ func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInfo
 }
 
 func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface.SSOAPI, selector Prompt) (*sso.AccountInfo, awserr.RequestFailure) {
-	var maxSize int64 = 1000 // default is 20, but sometimes you have more accounts available ;-)
+	var maxSize int64 = 100 // AWS SSO API limit is 100
 	lai := sso.ListAccountsInput{AccessToken: &clientInformation.AccessToken, MaxResults: &maxSize}
-	accounts, err := ssoClient.ListAccounts(&lai)
-	if err != nil {
-		if awsError, ok := err.(awserr.RequestFailure); ok {
-			return nil, awsError
+	
+	var allAccounts []*sso.AccountInfo
+	for {
+		accounts, err := ssoClient.ListAccounts(&lai)
+		if err != nil {
+			if awsError, ok := err.(awserr.RequestFailure); ok {
+				return nil, awsError
+			}
+			check(err)
 		}
+		
+		allAccounts = append(allAccounts, accounts.AccountList...)
+		
+		if accounts.NextToken == nil {
+			break
+		}
+		lai.NextToken = accounts.NextToken
 	}
-	check(err)
 
-	sortedAccounts := sortAccounts(accounts.AccountList)
+	sortedAccounts := sortAccounts(allAccounts)
 
 	var accountsToSelect []string
 	linePrefix := "#"
