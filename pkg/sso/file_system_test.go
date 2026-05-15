@@ -146,6 +146,7 @@ func TestProcessCredentialProcessTemplateWithExeName(t *testing.T) {
 		accountId    string
 		roleName     string
 		region       string
+		profile      string
 		fileTemplate CredentialsFileTemplate
 	}{
 		{
@@ -154,8 +155,9 @@ func TestProcessCredentialProcessTemplateWithExeName(t *testing.T) {
 			accountId: "accountid",
 			roleName:  "rolename",
 			region:    "region",
+			profile:   "default",
 			fileTemplate: CredentialsFileTemplate{
-				CredentialProcess: fmt.Sprintf("@exe#name$ assume -q -a accountid -n rolename"),
+				CredentialProcess: fmt.Sprintf("@exe#name$ assume -q -a accountid -n rolename -p default"),
 				Region:            "region",
 			},
 		},
@@ -165,8 +167,9 @@ func TestProcessCredentialProcessTemplateWithExeName(t *testing.T) {
 			accountId: "accountid",
 			roleName:  "rolename",
 			region:    "region",
+			profile:   "default",
 			fileTemplate: CredentialsFileTemplate{
-				CredentialProcess: fmt.Sprintf("e x e name assume -q -a accountid -n rolename"),
+				CredentialProcess: fmt.Sprintf("e x e name assume -q -a accountid -n rolename -p default"),
 				Region:            "region",
 			},
 		},
@@ -179,6 +182,7 @@ func TestProcessCredentialProcessTemplateWithExeName(t *testing.T) {
 				tc.accountId,
 				tc.roleName,
 				tc.region,
+				tc.profile,
 			)
 			if fileTemplate != tc.fileTemplate {
 				t.Errorf("File template is not equal. Got: %+v, want: %+v", fileTemplate, tc.fileTemplate)
