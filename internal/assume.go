@@ -32,7 +32,7 @@ func AssumeDirectly(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAP
 		zap.S().Infof("Assumed role: %s", roleName)
 		zap.S().Infof("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
 	} else {
-		template := ProcessCredentialProcessTemplate(accountId, roleName, context.String("region"))
+		template := ProcessCredentialProcessTemplate(accountId, roleName, context.String("region"), context.String("profile"))
 		WriteAWSCredentialsFile(&template, context.String("profile"))
 
 		creds := CredentialProcessOutput{

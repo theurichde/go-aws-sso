@@ -2,13 +2,14 @@ package internal
 
 import (
 	"fmt"
+	"sort"
+	"strconv"
+
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sso"
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
 	"go.uber.org/zap"
-	"sort"
-	"strconv"
 )
 
 func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInformation, ssoClient ssoiface.SSOAPI, selector Prompt) (*sso.RoleInfo, awserr.RequestFailure) {
@@ -52,9 +53,9 @@ func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInfo
 }
 
 func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface.SSOAPI, selector Prompt) (*sso.AccountInfo, awserr.RequestFailure) {
-	var maxSize int64 = 100 // AWS SSO API limit is 100
+	var maxSize int64 = 100 // default is 20, but sometimes you have more accounts available ;-)
 	lai := sso.ListAccountsInput{AccessToken: &clientInformation.AccessToken, MaxResults: &maxSize}
-	
+
 	var allAccounts []*sso.AccountInfo
 	for {
 		accounts, err := ssoClient.ListAccounts(&lai)
@@ -64,9 +65,9 @@ func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface
 			}
 			check(err)
 		}
-		
+
 		allAccounts = append(allAccounts, accounts.AccountList...)
-		
+
 		if accounts.NextToken == nil {
 			break
 		}
