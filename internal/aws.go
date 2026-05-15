@@ -34,7 +34,7 @@ func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInfo
 }
 
 func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface.SSOAPI, selector Prompt) (*sso.AccountInfo, awserr.RequestFailure) {
-	var maxSize int64 = 1000 // default is 20, but sometimes you have more accounts available ;-)
+	var maxSize int64 = 100 // default is 20, but sometimes you have more accounts available ;-)
 	lai := sso.ListAccountsInput{AccessToken: &clientInformation.AccessToken, MaxResults: &maxSize}
 	accounts, err := ssoClient.ListAccounts(&lai)
 	if err != nil {
