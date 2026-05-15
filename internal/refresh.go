@@ -41,7 +41,8 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 			if awsErr != nil && awsErr.StatusCode() == 401 { // unauthorized
 				clientInformation, accountInfo = retryWithNewClientCreds(oidcClient, ssoClient, startUrl)
 			}
-			roleInfo := RetrieveRoleInfo(accountInfo, clientInformation, ssoClient, Prompter{})
+			roleInfo, roleErr := RetrieveRoleInfo(accountInfo, clientInformation, ssoClient, Prompter{})
+			check(roleErr)
 			roleName = roleInfo.RoleName
 			accountId = accountInfo.AccountId
 			SaveUsageInformation(accountInfo, roleInfo)
