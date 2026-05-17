@@ -204,11 +204,17 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 	clientInformation := ProcessClientInformation(oidcClient, startUrl)
 
 	accountInfo, awsErr := RetrieveAccountInfo(clientInformation, ssoClient, promptSelector)
-	if awsErr != nil && awsErr.StatusCode() == 401 { // unauthorized
-		clientInformation, accountInfo = retryWithNewClientCreds(oidcClient, ssoClient, startUrl, promptSelector)
+	if awsErr != nil {
+		if awsErr.StatusCode() == 401 { // unauthorized
+			clientInformation, accountInfo = retryWithNewClientCreds(oidcClient, ssoClient, startUrl, promptSelector)
+		} else {
+			check(awsErr)
+		}
 	}
-
-	roleInfo := RetrieveRoleInfo(accountInfo, clientInformation, ssoClient, promptSelector)
+	roleInfo, roleErr := RetrieveRoleInfo(accountInfo, clientInformation, ssoClient, promptSelector)
+	if roleErr != nil {
+		check(roleErr)
+	}
 	SaveUsageInformation(accountInfo, roleInfo)
 
 	rci := &sso.GetRoleCredentialsInput{AccountId: accountInfo.AccountId, RoleName: roleInfo.RoleName, AccessToken: &clientInformation.AccessToken}
