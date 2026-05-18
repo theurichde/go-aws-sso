@@ -202,7 +202,7 @@ func openUrlInBrowser(url string) {
 	case "wsl":
 		err = exec.Command("wslview", url).Start()
 	default:
-		err = fmt.Errorf("could not open %s - unsupported platform. Please open the URL manually or use the BROWSER environemnt variable to point to your browser", url)
+		err = fmt.Errorf("could not open %s - unsupported platform. Please open the URL manually or use the BROWSER environment variable to point to your browser", url)
 	}
 	if err != nil {
 		zap.S().Error(err)
