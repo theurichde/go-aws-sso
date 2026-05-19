@@ -23,6 +23,7 @@ type LastUsageInformation struct {
 func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context) {
 
 	startUrl := context.String("start-url")
+	LoadRuntimeConfig(context.Bool("headless"))
 	clientInformation, err := ReadClientInformation(ClientInfoFileDestination())
 	if err != nil || clientInformation.StartUrl != startUrl {
 		clientInformation = ProcessClientInformation(oidcClient, startUrl)

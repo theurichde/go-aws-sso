@@ -73,6 +73,7 @@ OPTIONS:
    --persist                       whether or not you want to write your short-living credentials to ~/.aws/credentials (default: false)
    --force                         removes the temporary access token and forces the retrieval of a new token (default: false)
    --debug                         enables debug logging (default: false)
+   --headless                      show the verification URL without opening it in a browser (default: false)
    --role-name value, -n value     The role name you want to assume
    --account-id value, -a value    The account id where your role lives in
    --quiet, -q                     disables logger output (default: false)
@@ -105,12 +106,30 @@ OPTIONS:
    --persist                    whether or not you want to write your short-living credentials to ~/.aws/credentials (default: false)
    --force                      removes the temporary access token and forces the retrieval of a new token (default: false)
    --debug                      enables debug logging (default: false)
+   --headless                   show the verification URL without opening it in a browser (default: false)
    --help, -h                   show help
 ```
 
 ### Configuration
 
 * If you want to point to a specific non-default Browser, do so via the `BROWSER` environment variable
+
+#### Headless Mode
+
+If you prefer not to have the browser opened automatically during SSO authorization, you can enable **headless mode**:
+
+* via the `--headless` CLI flag
+* via the `GO_AWS_SSO_HEADLESS` environment variable (any non-empty value)
+
+When enabled, the verification URL is printed to the terminal and must be opened manually.
+
+```bash
+# Flag
+$ go-aws-sso --headless
+
+# Environment variable
+$ GO_AWS_SSO_HEADLESS=1 go-aws-sso
+```
 
 <details><summary>Basics</summary>
 
@@ -201,6 +220,7 @@ GLOBAL OPTIONS:
    --persist                    whether or not you want to write your short-living credentials to ~/.aws/credentials (default: false)
    --force                      removes the temporary access token and forces the retrieval of a new token (default: false)
    --debug                      enables debug logging (default: false)
+   --headless                   show the verification URL without opening it in a browser (default: false)
    --help, -h                   show help
    --version, -v                print the version
 ```
