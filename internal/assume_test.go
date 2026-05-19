@@ -117,7 +117,9 @@ func TestAssumeDirectly(t *testing.T) {
 func TestAssumeDirectly_UsesActualCredentialExpiration(t *testing.T) {
 	os.Remove(os.TempDir() + "/go-aws-sso.lock")
 	temp, err := os.CreateTemp("", "go-aws-sso-assume-directly_")
-	check(err)
+	if err != nil {
+		t.Fatalf("creating temp file: %v", err)
+	}
 	CredentialsFilePath = temp.Name()
 	defer func(path string) {
 		os.RemoveAll(path)
@@ -182,11 +184,15 @@ func TestAssumeDirectly_UsesActualCredentialExpiration(t *testing.T) {
 
 	var buf bytes.Buffer
 	_, err = io.Copy(&buf, r)
-	check(err)
+	if err != nil {
+		t.Fatalf("copying stdout: %v", err)
+	}
 
 	var creds CredentialProcessOutput
 	err = json.Unmarshal(buf.Bytes(), &creds)
-	check(err)
+	if err != nil {
+		t.Fatalf("unmarshaling credentials: %v", err)
+	}
 
 	if creds.Expiration != expectedExpiration {
 		t.Errorf("Expiration = %v, want %v", creds.Expiration, expectedExpiration)
