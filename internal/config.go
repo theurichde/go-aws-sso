@@ -7,7 +7,7 @@ import (
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
 	"github.com/urfave/cli/v2"
-	"go.uber.org/zap"
+	logger "github.com/theurichde/go-aws-sso/pkg/logger"
 	"gopkg.in/yaml.v3"
 )
 
@@ -87,7 +87,7 @@ func writeConfig(filePath string, ac AppConfig) error {
 	err = os.WriteFile(filePath, bytes, 0755)
 	check(err)
 
-	zap.S().Infof("Config file generated: %s", filePath)
+	logger.L.Infof("Config file generated: %s", filePath)
 
 	return err
 }

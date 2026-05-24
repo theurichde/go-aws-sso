@@ -8,7 +8,7 @@ import (
 	"path"
 
 	"github.com/aws/aws-sdk-go/service/sso"
-	"go.uber.org/zap"
+	logger "github.com/theurichde/go-aws-sso/pkg/logger"
 	"gopkg.in/ini.v1"
 )
 
@@ -76,16 +76,16 @@ func writeIniFile(template *CredentialsFileTemplate, profile string) {
 
 	recreateSection(template, profile, cfg)
 
-	zap.S().Debugf("Saving ini file to %s", CredentialsFilePath)
+	logger.L.Debugf("Saving ini file to %s", CredentialsFilePath)
 	cfg.SaveTo(CredentialsFilePath)
 }
 
 func recreateSection(template *CredentialsFileTemplate, profile string, cfg *ini.File) {
-	zap.S().Debugf("Deleting profile [%s] in credentials file", profile)
+	logger.L.Debugf("Deleting profile [%s] in credentials file", profile)
 	cfg.DeleteSection(profile)
 	sec, err := cfg.NewSection(profile)
 	check(err)
-	zap.S().Debugf("Reflecting profile [%s] in credentials file", profile)
+	logger.L.Debugf("Reflecting profile [%s] in credentials file", profile)
 	err = sec.ReflectFrom(template)
 }
 
@@ -98,7 +98,7 @@ func isFileOrFolderExisting(target string) bool {
 	} else if os.IsNotExist(err) {
 		return false
 	} else {
-		zap.S().Panicf("Could not determine if file or folder %s exists or not. Exiting.", target)
+		logger.L.Fatalf("Could not determine if file or folder %s exists or not. Exiting.", target)
 		return false
 	}
 }
@@ -127,6 +127,6 @@ func WriteStructToFile(payload interface{}, dest string) {
 
 func check(err error) {
 	if err != nil {
-		zap.S().Fatalf("Something went wrong: %q", err)
+		logger.L.Fatalf("Something went wrong: %q", err)
 	}
 }

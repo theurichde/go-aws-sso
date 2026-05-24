@@ -13,6 +13,7 @@ import (
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
+	logger "github.com/theurichde/go-aws-sso/pkg/logger"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -178,7 +179,7 @@ func main() {
 
 	err := app.Run(os.Args)
 	if err != nil {
-		zap.S().Fatal(err)
+		logger.L.Fatal(err)
 	}
 }
 
@@ -225,7 +226,7 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 	if context.Bool("persist") {
 		template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("region"))
 		WriteAWSCredentialsFile(&template, context.String("profile"))
-		zap.S().Infof("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
+		logger.L.Infof("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
 	} else {
 		template := ProcessCredentialProcessTemplate(*accountInfo.AccountId, *roleInfo.RoleName, context.String("region"), context.String("profile"))
 		WriteAWSCredentialsFile(&template, context.String("profile"))
@@ -244,14 +245,14 @@ func retryWithNewClientCreds(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoif
 
 func check(err error) {
 	if err != nil {
-		zap.S().Fatalf("Something went wrong: %q", err)
+		logger.L.Fatalf("Something went wrong: %q", err)
 	}
 }
 
 func checkMandatoryFlags(context *cli.Context) {
-	zap.S().Debug("Checking mandatory flags")
+	logger.L.Debug("Checking mandatory flags")
 	if context.String("start-url") == "" || context.String("region") == "" {
-		zap.S().Warn("No Start URL given. Please set it now.")
+		logger.L.Warn("No Start URL given. Please set it now.")
 		err := GenerateConfigAction(context)
 		check(err)
 		appConfig := ReadConfig(ConfigFilePath())
@@ -266,15 +267,15 @@ func applyForceFlag(context *cli.Context) {
 	if context.Bool("force") {
 		err := os.Remove(ClientInfoFileDestination())
 		if err != nil {
-			zap.S().Infof("Nothing to do, no temporary access token found")
+			logger.L.Infof("Nothing to do, no temporary access token found")
 		} else {
-			zap.S().Infof("Removed temporary access token")
+			logger.L.Infof("Removed temporary access token")
 		}
 		err = os.Remove(os.TempDir() + "/go-aws-sso.lock")
 		if err != nil {
-			zap.S().Debugf("Nothing to do, no temporary lock file found")
+			logger.L.Debugf("Nothing to do, no temporary lock file found")
 		} else {
-			zap.S().Infof("Removed temporary lock file")
+			logger.L.Infof("Removed temporary lock file")
 		}
 	}
 }
@@ -282,6 +283,7 @@ func applyForceFlag(context *cli.Context) {
 func initializeLogger(context *cli.Context) {
 	if context.Bool("quiet") {
 		zap.ReplaceGlobals(zap.NewNop())
+		logger.SetLogger(&logger.NoopLogger{})
 		return
 	}
 	config := zap.NewProductionEncoderConfig()
@@ -315,8 +317,9 @@ func initializeLogger(context *cli.Context) {
 	core := zapcore.NewTee(
 		zapcore.NewCore(encoder, stdOut, infoLevel),
 		zapcore.NewCore(encoder, stdErr, errorFatalLevel))
-	logger := zap.New(core, options...)
-	zap.ReplaceGlobals(logger)
+	zapLogger := zap.New(core, options...)
+	zap.ReplaceGlobals(zapLogger)
+	logger.SetLogger(&logger.ZapLogger{})
 
-	zap.S().Debug("Debug logging enabled")
+	logger.L.Debug("Debug logging enabled")
 }

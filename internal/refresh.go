@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
 	"github.com/urfave/cli/v2"
-	"go.uber.org/zap"
+	logger "github.com/theurichde/go-aws-sso/pkg/logger"
 )
 
 type LastUsageInformation struct {
@@ -29,7 +29,7 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 		clientInformation = ProcessClientInformation(oidcClient, startUrl)
 	}
 
-	zap.S().Infof("Using Start URL %s", clientInformation.StartUrl)
+	logger.L.Infof("Using Start URL %s", clientInformation.StartUrl)
 
 	var accountId *string
 	var roleName *string
@@ -37,7 +37,7 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 	lui, err := readUsageInformation()
 	if err != nil {
 		if strings.Contains(err.Error(), "no such file") {
-			zap.S().Info("Nothing to refresh yet")
+			logger.L.Info("Nothing to refresh yet")
 			accountInfo, awsErr := RetrieveAccountInfo(clientInformation, ssoClient, Prompter{})
 			if awsErr != nil {
 				if awsErr.StatusCode() == 401 { // unauthorized
@@ -55,7 +55,7 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 	} else {
 		accountId = &lui.AccountId
 		roleName = &lui.Role
-		zap.S().Infof("Attempting to refresh credentials for account [%s] with role [%s]", *accountId, *roleName)
+		logger.L.Infof("Attempting to refresh credentials for account [%s] with role [%s]", *accountId, *roleName)
 	}
 
 	rci := &sso.GetRoleCredentialsInput{AccountId: accountId, RoleName: roleName, AccessToken: &clientInformation.AccessToken}
@@ -65,9 +65,9 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 	template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("region"))
 	WriteAWSCredentialsFile(&template, context.String("profile"))
 
-	zap.S().Infof("Successful retrieved credentials for account: %s", *accountId)
-	zap.S().Infof("Assumed role: %s", *roleName)
-	zap.S().Infof("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
+	logger.L.Infof("Successful retrieved credentials for account: %s", *accountId)
+	logger.L.Infof("Assumed role: %s", *roleName)
+	logger.L.Infof("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
 }
 
 func retryWithNewClientCreds(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, startUrl string) (ClientInformation, *sso.AccountInfo) {

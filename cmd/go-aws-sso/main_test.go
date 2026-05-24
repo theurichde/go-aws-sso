@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
 	"github.com/urfave/cli/v2"
+	"github.com/theurichde/go-aws-sso/pkg/logger"
 )
 
 type mockSSOOIDCClient struct {
@@ -289,4 +290,9 @@ func Test_initializeLogger(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMain(m *testing.M) {
+	logger.SetLogger(&logger.TestLogger{})
+	os.Exit(m.Run())
 }

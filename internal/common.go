@@ -1,11 +1,11 @@
 package internal
 
 import (
-	"go.uber.org/zap"
+	logger "github.com/theurichde/go-aws-sso/pkg/logger"
 )
 
 func check(err error) {
 	if err != nil {
-		zap.S().Fatalf("Something went wrong: %q", err)
+		logger.L.Fatalf("Something went wrong: %q", err)
 	}
 }
