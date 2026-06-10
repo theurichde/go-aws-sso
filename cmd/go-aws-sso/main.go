@@ -282,7 +282,6 @@ func applyForceFlag(context *cli.Context) {
 
 func initializeLogger(context *cli.Context) {
 	if context.Bool("quiet") {
-		zap.ReplaceGlobals(zap.NewNop())
 		logger.SetLogger(&logger.QuietLogger{})
 		return
 	}
@@ -318,8 +317,7 @@ func initializeLogger(context *cli.Context) {
 		zapcore.NewCore(encoder, stdOut, infoLevel),
 		zapcore.NewCore(encoder, stdErr, errorFatalLevel))
 	zapLogger := zap.New(core, options...)
-	zap.ReplaceGlobals(zapLogger)
-	logger.SetLogger(&logger.ZapLogger{})
+	logger.SetLogger(logger.NewZapLogger(zapLogger.Sugar()))
 
 	logger.L.Debug("Debug logging enabled")
 }

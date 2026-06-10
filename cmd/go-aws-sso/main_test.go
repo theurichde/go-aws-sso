@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
 	"testing"
@@ -253,12 +252,7 @@ func Test_initializeLogger(t *testing.T) {
 			},
 		},
 	}
-	// replace the zap logger with a temporary instance
-	emptyLogger := &zap.Logger{}
-	reset := zap.ReplaceGlobals(emptyLogger)
-	defer reset()
 	for _, tt := range tests {
-		zap.ReplaceGlobals(emptyLogger)
 		t.Run(tt.name, func(t *testing.T) {
 			flagSet := flag.NewFlagSet("test-set", flag.ContinueOnError)
 			flagSet.Bool("debug", false, "")
@@ -273,11 +267,20 @@ func Test_initializeLogger(t *testing.T) {
 			context := cli.NewContext(nil, flagSet, nil)
 
 			initializeLogger(context)
-			initializedLogger := zap.L()
-			if initializedLogger == emptyLogger {
-				t.Errorf("initializeLogger() did not initialize the logger")
+
+			if _, ok := logger.L.(*logger.QuietLogger); ok {
+				wantQuiet := tt.want == levelsEnabled{}
+				if !wantQuiet {
+					t.Errorf("expected ZapLogger but got QuietLogger")
+				}
+				return
 			}
-			// check if the logger is enabled for the desired levels
+
+			zl, ok := logger.L.(*logger.ZapLogger)
+			if !ok {
+				t.Fatalf("expected *logger.ZapLogger, got %T", logger.L)
+			}
+			initializedLogger := zl.Sugar().Desugar()
 			gotLevels := levelsEnabled{
 				fatal: initializedLogger.Core().Enabled(zapcore.FatalLevel),
 				error: initializedLogger.Core().Enabled(zapcore.ErrorLevel),

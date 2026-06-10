@@ -8,7 +8,7 @@ import (
 )
 
 func TestZapLogger_InterfaceSatisfaction(t *testing.T) {
-	var l Logger = &ZapLogger{}
+	var l Logger = NewZapLogger(zap.NewNop().Sugar())
 	_ = l
 }
 
@@ -58,13 +58,11 @@ func TestSetLogger(t *testing.T) {
 	}
 }
 
-func TestDefaultLoggerIsQuiet(t *testing.T) {
-	original := L
-	defer SetLogger(original)
+var initL = L
 
-	SetLogger(&QuietLogger{})
-	if _, ok := L.(*QuietLogger); !ok {
-		t.Errorf("expected L to be *QuietLogger, got %T", L)
+func TestDefaultLoggerIsQuiet(t *testing.T) {
+	if _, ok := initL.(*QuietLogger); !ok {
+		t.Errorf("expected default L to be *QuietLogger, got %T", initL)
 	}
 }
 
@@ -133,10 +131,7 @@ func TestTestLogger_PanicfPanics(t *testing.T) {
 }
 
 func TestZapLogger_CallsDontPanic(t *testing.T) {
-	zap.ReplaceGlobals(zap.NewNop())
-	defer zap.ReplaceGlobals(zap.NewNop())
-
-	z := &ZapLogger{}
+	z := NewZapLogger(zap.NewNop().Sugar())
 	z.Debug("test")
 	z.Debugf("test %s", "arg")
 	z.Info("test")
@@ -148,26 +143,22 @@ func TestZapLogger_CallsDontPanic(t *testing.T) {
 }
 
 func TestZapLogger_PanicPanics(t *testing.T) {
-	zap.ReplaceGlobals(zap.NewNop())
-
 	defer func() {
 		if r := recover(); r == nil {
 			t.Errorf("expected panic from ZapLogger.Panic, got none")
 		}
 	}()
-	z := &ZapLogger{}
+	z := NewZapLogger(zap.NewNop().Sugar())
 	z.Panic("test")
 }
 
 func TestZapLogger_PanicfPanics(t *testing.T) {
-	zap.ReplaceGlobals(zap.NewNop())
-
 	defer func() {
 		if r := recover(); r == nil {
 			t.Errorf("expected panic from ZapLogger.Panicf, got none")
 		}
 	}()
-	z := &ZapLogger{}
+	z := NewZapLogger(zap.NewNop().Sugar())
 	z.Panicf("test %s", "arg")
 }
 

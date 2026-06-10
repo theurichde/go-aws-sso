@@ -37,21 +37,33 @@ func SetLogger(l Logger) {
 	L = l
 }
 
-// ZapLogger implements Logger by wrapping zap.S().
-type ZapLogger struct{}
+// ZapLogger implements Logger by wrapping a *zap.SugaredLogger.
+type ZapLogger struct {
+	sugar *zap.SugaredLogger
+}
 
-func (z *ZapLogger) Debug(args ...interface{})                   { zap.S().Debug(args...) }
-func (z *ZapLogger) Debugf(template string, args ...interface{})  { zap.S().Debugf(template, args...) }
-func (z *ZapLogger) Info(args ...interface{})                    { zap.S().Info(args...) }
-func (z *ZapLogger) Infof(template string, args ...interface{})   { zap.S().Infof(template, args...) }
-func (z *ZapLogger) Warn(args ...interface{})                    { zap.S().Warn(args...) }
-func (z *ZapLogger) Warnf(template string, args ...interface{})   { zap.S().Warnf(template, args...) }
-func (z *ZapLogger) Error(args ...interface{})                   { zap.S().Error(args...) }
-func (z *ZapLogger) Errorf(template string, args ...interface{})  { zap.S().Errorf(template, args...) }
-func (z *ZapLogger) Fatal(args ...interface{})                   { zap.S().Fatal(args...) }
-func (z *ZapLogger) Fatalf(template string, args ...interface{})  { zap.S().Fatalf(template, args...) }
-func (z *ZapLogger) Panic(args ...interface{})                   { zap.S().Panic(args...) }
-func (z *ZapLogger) Panicf(template string, args ...interface{})  { zap.S().Panicf(template, args...) }
+// NewZapLogger creates a ZapLogger from a *zap.SugaredLogger.
+func NewZapLogger(sugar *zap.SugaredLogger) *ZapLogger {
+	return &ZapLogger{sugar: sugar}
+}
+
+// Sugar returns the underlying *zap.SugaredLogger.
+func (z *ZapLogger) Sugar() *zap.SugaredLogger {
+	return z.sugar
+}
+
+func (z *ZapLogger) Debug(args ...interface{})                   { z.sugar.Debug(args...) }
+func (z *ZapLogger) Debugf(template string, args ...interface{})  { z.sugar.Debugf(template, args...) }
+func (z *ZapLogger) Info(args ...interface{})                    { z.sugar.Info(args...) }
+func (z *ZapLogger) Infof(template string, args ...interface{})   { z.sugar.Infof(template, args...) }
+func (z *ZapLogger) Warn(args ...interface{})                    { z.sugar.Warn(args...) }
+func (z *ZapLogger) Warnf(template string, args ...interface{})   { z.sugar.Warnf(template, args...) }
+func (z *ZapLogger) Error(args ...interface{})                   { z.sugar.Error(args...) }
+func (z *ZapLogger) Errorf(template string, args ...interface{})  { z.sugar.Errorf(template, args...) }
+func (z *ZapLogger) Fatal(args ...interface{})                   { z.sugar.Fatal(args...) }
+func (z *ZapLogger) Fatalf(template string, args ...interface{})  { z.sugar.Fatalf(template, args...) }
+func (z *ZapLogger) Panic(args ...interface{})                   { z.sugar.Panic(args...) }
+func (z *ZapLogger) Panicf(template string, args ...interface{})  { z.sugar.Panicf(template, args...) }
 
 // QuietLogger implements Logger by discarding all log messages.
 // Fatal and Fatalf still exit the process; Panic and Panicf still panic.
@@ -65,8 +77,14 @@ func (n *QuietLogger) Warn(args ...interface{})                    {}
 func (n *QuietLogger) Warnf(template string, args ...interface{})  {}
 func (n *QuietLogger) Error(args ...interface{})                    {}
 func (n *QuietLogger) Errorf(template string, args ...interface{}) {}
-func (n *QuietLogger) Fatal(args ...interface{})                   { os.Exit(1) }
-func (n *QuietLogger) Fatalf(template string, args ...interface{}) { os.Exit(1) }
+func (n *QuietLogger) Fatal(args ...interface{}) {
+	fmt.Fprintln(os.Stderr, fmt.Sprint(args...))
+	os.Exit(1)
+}
+func (n *QuietLogger) Fatalf(template string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, template+"\n", args...)
+	os.Exit(1)
+}
 func (n *QuietLogger) Panic(args ...interface{})                   { panic(fmt.Sprint(args...)) }
 func (n *QuietLogger) Panicf(template string, args ...interface{}) { panic(fmt.Sprintf(template, args...)) }
 
@@ -84,7 +102,7 @@ func (t *TestLogger) Error(args ...interface{}) {
 	fmt.Fprintln(os.Stderr, "ERROR:", fmt.Sprint(args...))
 }
 func (t *TestLogger) Errorf(template string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, "ERROR: "+template+"\n", args...)
+	fmt.Fprintln(os.Stderr, "ERROR:", fmt.Sprintf(template, args...))
 }
 func (t *TestLogger) Fatal(args ...interface{}) {
 	panic("FATAL: " + fmt.Sprint(args...))
