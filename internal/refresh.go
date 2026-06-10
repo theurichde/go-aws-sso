@@ -43,11 +43,11 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 				if awsErr.StatusCode() == 401 { // unauthorized
 					clientInformation, accountInfo = retryWithNewClientCreds(oidcClient, ssoClient, startUrl)
 				} else {
-					check(awsErr)
+					logger.CheckFatal(awsErr)
 				}
 			}
 			roleInfo, roleErr := RetrieveRoleInfo(accountInfo, clientInformation, ssoClient, Prompter{})
-			check(roleErr)
+			logger.CheckFatal(roleErr)
 			roleName = roleInfo.RoleName
 			accountId = accountInfo.AccountId
 			SaveUsageInformation(accountInfo, roleInfo)
@@ -60,7 +60,7 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 
 	rci := &sso.GetRoleCredentialsInput{AccountId: accountId, RoleName: roleName, AccessToken: &clientInformation.AccessToken}
 	roleCredentials, err := ssoClient.GetRoleCredentials(rci)
-	check(err)
+	logger.CheckFatal(err)
 
 	template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("region"))
 	WriteAWSCredentialsFile(&template, context.String("profile"))
@@ -72,10 +72,10 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 
 func retryWithNewClientCreds(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, startUrl string) (ClientInformation, *sso.AccountInfo) {
 	osErr := os.Remove(ClientInfoFileDestination())
-	check(osErr)
+	logger.CheckFatal(osErr)
 	clientInformation := ProcessClientInformation(oidcClient, startUrl)
 	accountInfo, awsErr := RetrieveAccountInfo(clientInformation, ssoClient, Prompter{})
-	check(awsErr)
+	logger.CheckFatal(awsErr)
 	return clientInformation, accountInfo
 }
 
@@ -98,6 +98,6 @@ func readUsageInformation() (*LastUsageInformation, error) {
 	}
 	lui := new(LastUsageInformation)
 	err = json.Unmarshal(bytes, lui)
-	check(err)
+	logger.CheckFatal(err)
 	return lui, nil
 }

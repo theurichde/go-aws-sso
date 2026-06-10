@@ -23,7 +23,7 @@ func AssumeDirectly(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAP
 	clientInformation := ProcessClientInformation(oidcClient, startUrl)
 	rci := &sso.GetRoleCredentialsInput{AccountId: &accountId, RoleName: &roleName, AccessToken: &clientInformation.AccessToken}
 	roleCredentials, err := ssoClient.GetRoleCredentials(rci)
-	check(err)
+	logger.CheckFatal(err)
 
 	if context.Bool("persist") {
 		template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("region"))
@@ -44,9 +44,9 @@ func AssumeDirectly(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAP
 			SessionToken:    *roleCredentials.RoleCredentials.SessionToken,
 		}
 		bytes, err := json.Marshal(creds)
-		check(err)
+		logger.CheckFatal(err)
 		_, err = os.Stdout.Write(bytes)
-		check(err)
+		logger.CheckFatal(err)
 	}
 
 }

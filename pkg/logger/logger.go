@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // Logger defines the logging interface used throughout the application.
@@ -47,9 +48,9 @@ func NewZapLogger(sugar *zap.SugaredLogger) *ZapLogger {
 	return &ZapLogger{sugar: sugar}
 }
 
-// Sugar returns the underlying *zap.SugaredLogger.
-func (z *ZapLogger) Sugar() *zap.SugaredLogger {
-	return z.sugar
+// IsLevelEnabled reports whether the given level is enabled on the underlying logger.
+func (z *ZapLogger) IsLevelEnabled(level zapcore.Level) bool {
+	return z.sugar.Desugar().Core().Enabled(level)
 }
 
 func (z *ZapLogger) Debug(args ...interface{})                   { z.sugar.Debug(args...) }
@@ -89,7 +90,7 @@ func (n *QuietLogger) Panic(args ...interface{})                   { panic(fmt.S
 func (n *QuietLogger) Panicf(template string, args ...interface{}) { panic(fmt.Sprintf(template, args...)) }
 
 // TestLogger implements Logger and panics on Fatal/Panic calls instead of
-// calling os.Exit. Error-level messages are printed via fmt; other levels are silent.
+// calling os.Exit. All log output is discarded to keep test output clean.
 type TestLogger struct{}
 
 func (t *TestLogger) Debug(args ...interface{})                   {}
@@ -98,12 +99,8 @@ func (t *TestLogger) Info(args ...interface{})                    {}
 func (t *TestLogger) Infof(template string, args ...interface{})  {}
 func (t *TestLogger) Warn(args ...interface{})                    {}
 func (t *TestLogger) Warnf(template string, args ...interface{})  {}
-func (t *TestLogger) Error(args ...interface{}) {
-	fmt.Fprintln(os.Stderr, "ERROR:", fmt.Sprint(args...))
-}
-func (t *TestLogger) Errorf(template string, args ...interface{}) {
-	fmt.Fprintln(os.Stderr, "ERROR:", fmt.Sprintf(template, args...))
-}
+func (t *TestLogger) Error(args ...interface{})                   {}
+func (t *TestLogger) Errorf(template string, args ...interface{}) {}
 func (t *TestLogger) Fatal(args ...interface{}) {
 	panic("FATAL: " + fmt.Sprint(args...))
 }
@@ -115,4 +112,11 @@ func (t *TestLogger) Panic(args ...interface{}) {
 }
 func (t *TestLogger) Panicf(template string, args ...interface{}) {
 	panic(fmt.Sprintf("PANIC: "+template, args...))
+}
+
+// CheckFatal calls L.Fatalf if err is non-nil.
+func CheckFatal(err error) {
+	if err != nil {
+		L.Fatalf("Something went wrong: %q", err)
+	}
 }

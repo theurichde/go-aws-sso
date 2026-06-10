@@ -210,18 +210,18 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 		if awsErr.StatusCode() == 401 { // unauthorized
 			clientInformation, accountInfo = retryWithNewClientCreds(oidcClient, ssoClient, startUrl, promptSelector)
 		} else {
-			check(awsErr)
+			logger.CheckFatal(awsErr)
 		}
 	}
 	roleInfo, roleErr := RetrieveRoleInfo(accountInfo, clientInformation, ssoClient, promptSelector)
 	if roleErr != nil {
-		check(roleErr)
+		logger.CheckFatal(roleErr)
 	}
 	SaveUsageInformation(accountInfo, roleInfo)
 
 	rci := &sso.GetRoleCredentialsInput{AccountId: accountInfo.AccountId, RoleName: roleInfo.RoleName, AccessToken: &clientInformation.AccessToken}
 	roleCredentials, err := ssoClient.GetRoleCredentials(rci)
-	check(err)
+	logger.CheckFatal(err)
 
 	if context.Bool("persist") {
 		template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("region"))
@@ -236,17 +236,11 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 
 func retryWithNewClientCreds(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, startUrl string, promptSelector Prompt) (ClientInformation, *sso.AccountInfo) {
 	err := os.Remove(ClientInfoFileDestination())
-	check(err)
+	logger.CheckFatal(err)
 	clientInformation := ProcessClientInformation(oidcClient, startUrl)
 	accountInfo, awsErr := RetrieveAccountInfo(clientInformation, ssoClient, promptSelector)
-	check(awsErr)
+	logger.CheckFatal(awsErr)
 	return clientInformation, accountInfo
-}
-
-func check(err error) {
-	if err != nil {
-		logger.L.Fatalf("Something went wrong: %q", err)
-	}
 }
 
 func checkMandatoryFlags(context *cli.Context) {
@@ -254,12 +248,12 @@ func checkMandatoryFlags(context *cli.Context) {
 	if context.String("start-url") == "" || context.String("region") == "" {
 		logger.L.Warn("No Start URL given. Please set it now.")
 		err := GenerateConfigAction(context)
-		check(err)
+		logger.CheckFatal(err)
 		appConfig := ReadConfig(ConfigFilePath())
 		err = context.Set("start-url", appConfig.StartUrl)
-		check(err)
+		logger.CheckFatal(err)
 		err = context.Set("region", appConfig.Region)
-		check(err)
+		logger.CheckFatal(err)
 	}
 }
 

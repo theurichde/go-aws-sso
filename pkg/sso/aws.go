@@ -152,7 +152,7 @@ func generateCreateTokenInput(clientInformation *ClientInformation) ssooidc.Crea
 func registerClient(oidc ssooidciface.SSOOIDCAPI, startUrl string) *ClientInformation {
 	rci := ssooidc.RegisterClientInput{ClientName: aws.String(clientName), ClientType: aws.String(clientType)}
 	rco, err := oidc.RegisterClient(&rci)
-	check(err)
+	logger.CheckFatal(err)
 
 	sdao := startDeviceAuthorization(oidc, rco, startUrl)
 
@@ -168,7 +168,7 @@ func registerClient(oidc ssooidciface.SSOOIDCAPI, startUrl string) *ClientInform
 
 func startDeviceAuthorization(oidc ssooidciface.SSOOIDCAPI, rco *ssooidc.RegisterClientOutput, startUrl string) ssooidc.StartDeviceAuthorizationOutput {
 	sdao, err := oidc.StartDeviceAuthorization(&ssooidc.StartDeviceAuthorizationInput{ClientId: rco.ClientId, ClientSecret: rco.ClientSecret, StartUrl: &startUrl})
-	check(err)
+	logger.CheckFatal(err)
 	logger.L.Warnf("Please verify your client request: %s", *sdao.VerificationUriComplete)
 
 	if !Config.Headless {

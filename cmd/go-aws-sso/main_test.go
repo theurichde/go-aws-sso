@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"go.uber.org/zap/zapcore"
 	"os"
 	"testing"
 	"time"
@@ -14,6 +13,7 @@ import (
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
 	"github.com/urfave/cli/v2"
 	"github.com/theurichde/go-aws-sso/pkg/logger"
+	"go.uber.org/zap/zapcore"
 )
 
 type mockSSOOIDCClient struct {
@@ -65,7 +65,9 @@ func (t mockTime) Now() time.Time {
 func Test_start(t *testing.T) {
 	os.Remove(os.TempDir() + "/go-aws-sso.lock")
 	temp, err := os.CreateTemp("", "go-aws-sso_start")
-	check(err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	CredentialsFilePath = temp.Name()
 	defer func(path string) {
 		os.RemoveAll(path)
@@ -254,6 +256,9 @@ func Test_initializeLogger(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			original := logger.L
+			defer logger.SetLogger(original)
+
 			flagSet := flag.NewFlagSet("test-set", flag.ContinueOnError)
 			flagSet.Bool("debug", false, "")
 			flagPtr := flagSet.Bool("quiet", false, "")
@@ -280,13 +285,12 @@ func Test_initializeLogger(t *testing.T) {
 			if !ok {
 				t.Fatalf("expected *logger.ZapLogger, got %T", logger.L)
 			}
-			initializedLogger := zl.Sugar().Desugar()
 			gotLevels := levelsEnabled{
-				fatal: initializedLogger.Core().Enabled(zapcore.FatalLevel),
-				error: initializedLogger.Core().Enabled(zapcore.ErrorLevel),
-				warn:  initializedLogger.Core().Enabled(zapcore.WarnLevel),
-				info:  initializedLogger.Core().Enabled(zapcore.InfoLevel),
-				debug: initializedLogger.Core().Enabled(zapcore.DebugLevel),
+				fatal: zl.IsLevelEnabled(zapcore.FatalLevel),
+				error: zl.IsLevelEnabled(zapcore.ErrorLevel),
+				warn:  zl.IsLevelEnabled(zapcore.WarnLevel),
+				info:  zl.IsLevelEnabled(zapcore.InfoLevel),
+				debug: zl.IsLevelEnabled(zapcore.DebugLevel),
 			}
 			if tt.want != gotLevels {
 				t.Errorf("Got: %v, but wanted: %v", gotLevels, tt.want)

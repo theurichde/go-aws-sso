@@ -23,7 +23,7 @@ func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInfo
 			if awsError, ok := err.(awserr.RequestFailure); ok {
 				return nil, awsError
 			}
-			check(err)
+			logger.CheckFatal(err)
 		}
 
 		allRoles = append(allRoles, roles.RoleList...)
@@ -63,7 +63,7 @@ func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface
 			if awsError, ok := err.(awserr.RequestFailure); ok {
 				return nil, awsError
 			}
-			check(err)
+			logger.CheckFatal(err)
 		}
 
 		allAccounts = append(allAccounts, accounts.AccountList...)
