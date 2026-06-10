@@ -7,7 +7,7 @@ import (
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
 	"github.com/urfave/cli/v2"
-	"go.uber.org/zap"
+	"github.com/theurichde/go-aws-sso/pkg/logger"
 	"gopkg.in/yaml.v3"
 )
 
@@ -61,7 +61,7 @@ func EditConfigAction(_ *cli.Context) error {
 	config.Region = promptRegion(prompter)
 
 	err := writeConfig(ConfigFilePath(), *config)
-	check(err)
+	logger.CheckFatal(err)
 	return err
 
 }
@@ -69,31 +69,31 @@ func EditConfigAction(_ *cli.Context) error {
 func ReadConfig(filePath string) *AppConfig {
 
 	bytes, err := os.ReadFile(filePath)
-	check(err)
+	logger.CheckFatal(err)
 	appConfig := AppConfig{}
 	err = yaml.Unmarshal(bytes, &appConfig)
-	check(err)
+	logger.CheckFatal(err)
 	return &appConfig
 }
 
 func writeConfig(filePath string, ac AppConfig) error {
 	bytes, err := yaml.Marshal(ac)
-	check(err)
+	logger.CheckFatal(err)
 
 	base := path.Dir(filePath)
 	err = os.MkdirAll(base, 0755)
-	check(err)
+	logger.CheckFatal(err)
 
 	err = os.WriteFile(filePath, bytes, 0755)
-	check(err)
+	logger.CheckFatal(err)
 
-	zap.S().Infof("Config file generated: %s", filePath)
+	logger.L.Infof("Config file generated: %s", filePath)
 
 	return err
 }
 
 func ConfigFilePath() string {
 	configDir, err := os.UserConfigDir()
-	check(err)
+	logger.CheckFatal(err)
 	return configDir + "/go-aws-sso/config.yml"
 }

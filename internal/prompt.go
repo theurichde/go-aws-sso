@@ -4,6 +4,7 @@ import (
 	"github.com/chzyer/readline"
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	"github.com/manifoldco/promptui"
+	"github.com/theurichde/go-aws-sso/pkg/logger"
 	"strings"
 )
 
@@ -41,7 +42,7 @@ func (p Prompter) Select(label string, toSelect []string, searcher func(input st
 	}
 
 	index, value, err := prompt.Run()
-	check(err)
+	logger.CheckFatal(err)
 	return index, value
 }
 
@@ -52,7 +53,7 @@ func (p Prompter) Prompt(label string, dfault string) string {
 		AllowEdit: false,
 	}
 	val, err := prompt.Run()
-	check(err)
+	logger.CheckFatal(err)
 	return val
 }
 

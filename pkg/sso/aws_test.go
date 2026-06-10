@@ -3,9 +3,12 @@ package sso
 import (
 	"github.com/aws/aws-sdk-go/service/ssooidc"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
+	"os"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/theurichde/go-aws-sso/pkg/logger"
 )
 
 type MockSSOOIDCClient struct {
@@ -90,4 +93,9 @@ func TestClientInformation_isExpired(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMain(m *testing.M) {
+	logger.SetLogger(&logger.TestLogger{})
+	os.Exit(m.Run())
 }

@@ -19,7 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
-	"go.uber.org/zap"
+	"github.com/theurichde/go-aws-sso/pkg/logger"
 )
 
 const grantType = "urn:ietf:params:oauth:grant-type:device_code"
@@ -105,14 +105,14 @@ func (ati ClientInformation) isExpired() bool {
 // When the ClientInformation.AccessToken is expired, it starts retrieving a new AccessToken
 func ProcessClientInformation(oidcClient ssooidciface.SSOOIDCAPI, startUrl string) ClientInformation {
 	if isAuthorizationFlowLocked() {
-		zap.S().Fatal(lockedAuthFlowMsg)
+		logger.L.Fatal(lockedAuthFlowMsg)
 	}
 
 	clientInformation, err := ReadClientInformation(ClientInfoFileDestination())
 	if err != nil || clientInformation.StartUrl != startUrl {
 		lockAuthorizationFlow()
 		defer unlockAuthorizationFlow()
-		zap.S().Debugf("Encountered error while reading client information: %s", err)
+		logger.L.Debugf("Encountered error while reading client information: %s", err)
 		var clientInfoPointer *ClientInformation
 		clientInfoPointer = registerClient(oidcClient, startUrl)
 		clientInfoPointer = retrieveToken(oidcClient, Time{}, clientInfoPointer)
@@ -120,11 +120,11 @@ func ProcessClientInformation(oidcClient ssooidciface.SSOOIDCAPI, startUrl strin
 		clientInformation = *clientInfoPointer
 	} else if clientInformation.isExpired() {
 		if isAuthorizationFlowLocked() {
-			zap.S().Fatal(lockedAuthFlowMsg)
+			logger.L.Fatal(lockedAuthFlowMsg)
 		} else {
 			lockAuthorizationFlow()
 			defer unlockAuthorizationFlow()
-			zap.S().Info("AccessToken expired. Start retrieving a new AccessToken")
+			logger.L.Info("AccessToken expired. Start retrieving a new AccessToken")
 			clientInformation = handleOutdatedAccessToken(clientInformation, oidcClient, startUrl)
 		}
 	}
@@ -152,7 +152,7 @@ func generateCreateTokenInput(clientInformation *ClientInformation) ssooidc.Crea
 func registerClient(oidc ssooidciface.SSOOIDCAPI, startUrl string) *ClientInformation {
 	rci := ssooidc.RegisterClientInput{ClientName: aws.String(clientName), ClientType: aws.String(clientType)}
 	rco, err := oidc.RegisterClient(&rci)
-	check(err)
+	logger.CheckFatal(err)
 
 	sdao := startDeviceAuthorization(oidc, rco, startUrl)
 
@@ -168,8 +168,8 @@ func registerClient(oidc ssooidciface.SSOOIDCAPI, startUrl string) *ClientInform
 
 func startDeviceAuthorization(oidc ssooidciface.SSOOIDCAPI, rco *ssooidc.RegisterClientOutput, startUrl string) ssooidc.StartDeviceAuthorizationOutput {
 	sdao, err := oidc.StartDeviceAuthorization(&ssooidc.StartDeviceAuthorizationInput{ClientId: rco.ClientId, ClientSecret: rco.ClientSecret, StartUrl: &startUrl})
-	check(err)
-	zap.S().Warnf("Please verify your client request: %s", *sdao.VerificationUriComplete)
+	logger.CheckFatal(err)
+	logger.L.Warnf("Please verify your client request: %s", *sdao.VerificationUriComplete)
 
 	if !Config.Headless {
 		openUrlInBrowser(*sdao.VerificationUriComplete)
@@ -182,10 +182,10 @@ func openUrlInBrowser(url string) {
 	var err error
 
 	if env, ok := os.LookupEnv("BROWSER"); ok {
-		zap.S().Debugf("using BROWSER environment variable: %s", env)
+		logger.L.Debugf("using BROWSER environment variable: %s", env)
 		err = exec.Command(env, url).Start()
 		if err != nil {
-			zap.S().Fatalf("error while opening browser: %s", err)
+			logger.L.Fatalf("error while opening browser: %s", err)
 		}
 		return
 	}
@@ -204,7 +204,7 @@ func openUrlInBrowser(url string) {
 		err = fmt.Errorf("could not open %s - unsupported platform. Please open the URL manually or use the BROWSER environment variable to point to your browser", url)
 	}
 	if err != nil {
-		zap.S().Error(err)
+		logger.L.Error(err)
 	}
 }
 
@@ -235,11 +235,11 @@ func retrieveToken(client ssooidciface.SSOOIDCAPI, timer Timer, info *ClientInfo
 			var awsErr awserr.Error
 			if errors.As(err, &awsErr) {
 				if awsErr.Code() == "AuthorizationPendingException" {
-					zap.S().Infof("Still waiting for authorization...")
+					logger.L.Infof("Still waiting for authorization...")
 					time.Sleep(3 * time.Second)
 					continue
 				} else {
-					zap.S().Fatal(err)
+					logger.L.Fatal(err)
 				}
 			}
 		} else {
@@ -262,12 +262,12 @@ func lockAuthorizationFlow() {
 	lf := lockfile{LockTime: time.Now()}
 	lockBytes, err := json.Marshal(lf)
 	if err != nil {
-		zap.S().Error("Something went wrong while marshalling the temporary lock file", err)
+		logger.L.Error("Something went wrong while marshalling the temporary lock file", err)
 	}
 
 	err = os.WriteFile(os.TempDir()+"/go-aws-sso.lock", lockBytes, 0644)
 	if err != nil {
-		zap.S().Error("Something went wrong writing the temporary lock file", err)
+		logger.L.Error("Something went wrong writing the temporary lock file", err)
 	}
 }
 
@@ -276,15 +276,15 @@ func isAuthorizationFlowLocked() bool {
 	var pathError *os.PathError
 	if err != nil {
 		if errors.As(err, &pathError) {
-			zap.S().Debug("No lock file found")
+			logger.L.Debug("No lock file found")
 			return false
 		}
-		zap.S().Error("Something went wrong while reading the temporary lock file", err)
+		logger.L.Error("Something went wrong while reading the temporary lock file", err)
 	}
 	lf := lockfile{}
 	err = json.Unmarshal(lockBytes, &lf)
 	if err != nil {
-		zap.S().Error("Something went wrong while unmarshalling the temporary lock file", err)
+		logger.L.Error("Something went wrong while unmarshalling the temporary lock file", err)
 		return false
 	}
 

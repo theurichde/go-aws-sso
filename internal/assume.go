@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
 	"github.com/urfave/cli/v2"
-	"go.uber.org/zap"
+	"github.com/theurichde/go-aws-sso/pkg/logger"
 )
 
 // AssumeDirectly
@@ -23,15 +23,15 @@ func AssumeDirectly(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAP
 	clientInformation := ProcessClientInformation(oidcClient, startUrl)
 	rci := &sso.GetRoleCredentialsInput{AccountId: &accountId, RoleName: &roleName, AccessToken: &clientInformation.AccessToken}
 	roleCredentials, err := ssoClient.GetRoleCredentials(rci)
-	check(err)
+	logger.CheckFatal(err)
 
 	if context.Bool("persist") {
 		template := ProcessPersistedCredentialsTemplate(roleCredentials, context.String("region"))
 		WriteAWSCredentialsFile(&template, context.String("profile"))
 
-		zap.S().Infof("Successful retrieved credentials for account: %s", accountId)
-		zap.S().Infof("Assumed role: %s", roleName)
-		zap.S().Infof("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
+		logger.L.Infof("Successful retrieved credentials for account: %s", accountId)
+		logger.L.Infof("Assumed role: %s", roleName)
+		logger.L.Infof("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
 	} else {
 		template := ProcessCredentialProcessTemplate(accountId, roleName, context.String("region"), context.String("profile"))
 		WriteAWSCredentialsFile(&template, context.String("profile"))
@@ -44,9 +44,9 @@ func AssumeDirectly(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAP
 			SessionToken:    *roleCredentials.RoleCredentials.SessionToken,
 		}
 		bytes, err := json.Marshal(creds)
-		check(err)
+		logger.CheckFatal(err)
 		_, err = os.Stdout.Write(bytes)
-		check(err)
+		logger.CheckFatal(err)
 	}
 
 }

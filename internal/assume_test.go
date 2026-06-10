@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssooidc"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
+	"github.com/theurichde/go-aws-sso/pkg/logger"
 	"github.com/urfave/cli/v2"
 )
 
@@ -50,7 +51,7 @@ func (m mockSSOClient) GetRoleCredentials(*sso.GetRoleCredentialsInput) (*sso.Ge
 func TestAssumeDirectly(t *testing.T) {
 	os.Remove(os.TempDir() + "/go-aws-sso.lock")
 	temp, err := os.CreateTemp("", "go-aws-sso-assume-directly_")
-	check(err)
+	logger.CheckFatal(err)
 	CredentialsFilePath = temp.Name()
 	defer func(path string) {
 		os.RemoveAll(path)

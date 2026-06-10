@@ -8,7 +8,7 @@ import (
 	"path"
 
 	"github.com/aws/aws-sdk-go/service/sso"
-	"go.uber.org/zap"
+	"github.com/theurichde/go-aws-sso/pkg/logger"
 	"gopkg.in/ini.v1"
 )
 
@@ -36,7 +36,7 @@ func ProcessPersistedCredentialsTemplate(credentials *sso.GetRoleCredentialsOutp
 
 func ProcessCredentialProcessTemplate(accountId string, roleName string, region string, profile string) CredentialsFileTemplate {
 	exeName, err := os.Executable()
-	check(err)
+	logger.CheckFatal(err)
 	return processCredentialProcessTemplateWithExeName(exeName, accountId, roleName, region, profile)
 }
 
@@ -50,7 +50,7 @@ func processCredentialProcessTemplateWithExeName(exeName string, accountId strin
 
 func GetCredentialsFilePath() string {
 	homeDir, err := os.UserHomeDir()
-	check(err)
+	logger.CheckFatal(err)
 	return homeDir + "/.aws/credentials"
 }
 
@@ -64,28 +64,28 @@ func WriteAWSCredentialsFile(template *CredentialsFileTemplate, profile string) 
 func createCredentialsFile() {
 	dir := path.Dir(CredentialsFilePath)
 	err := os.MkdirAll(dir, 0755)
-	check(err)
+	logger.CheckFatal(err)
 	f, err := os.OpenFile(CredentialsFilePath, os.O_CREATE, 0644)
-	check(err)
+	logger.CheckFatal(err)
 	defer f.Close()
 }
 
 func writeIniFile(template *CredentialsFileTemplate, profile string) {
 	cfg, err := ini.Load(CredentialsFilePath)
-	check(err)
+	logger.CheckFatal(err)
 
 	recreateSection(template, profile, cfg)
 
-	zap.S().Debugf("Saving ini file to %s", CredentialsFilePath)
+	logger.L.Debugf("Saving ini file to %s", CredentialsFilePath)
 	cfg.SaveTo(CredentialsFilePath)
 }
 
 func recreateSection(template *CredentialsFileTemplate, profile string, cfg *ini.File) {
-	zap.S().Debugf("Deleting profile [%s] in credentials file", profile)
+	logger.L.Debugf("Deleting profile [%s] in credentials file", profile)
 	cfg.DeleteSection(profile)
 	sec, err := cfg.NewSection(profile)
-	check(err)
-	zap.S().Debugf("Reflecting profile [%s] in credentials file", profile)
+	logger.CheckFatal(err)
+	logger.L.Debugf("Reflecting profile [%s] in credentials file", profile)
 	err = sec.ReflectFrom(template)
 }
 
@@ -98,7 +98,7 @@ func isFileOrFolderExisting(target string) bool {
 	} else if os.IsNotExist(err) {
 		return false
 	} else {
-		zap.S().Panicf("Could not determine if file or folder %s exists or not. Exiting.", target)
+		logger.L.Panicf("Could not determine if file or folder %s exists or not. Exiting.", target)
 		return false
 	}
 }
@@ -108,7 +108,7 @@ func ReadClientInformation(file string) (ClientInformation, error) {
 		clientInformation := ClientInformation{}
 		content, _ := os.ReadFile(ClientInfoFileDestination())
 		err := json.Unmarshal(content, &clientInformation)
-		check(err)
+		logger.CheckFatal(err)
 		return clientInformation, nil
 	}
 	return ClientInformation{}, errors.New("no ClientInformation exist")
@@ -118,15 +118,11 @@ func WriteStructToFile(payload interface{}, dest string) {
 	targetDir := path.Dir(dest)
 	if !isFileOrFolderExisting(targetDir) {
 		err := os.MkdirAll(targetDir, 0700)
-		check(err)
+		logger.CheckFatal(err)
 	}
 	file, err := json.MarshalIndent(payload, "", " ")
-	check(err)
+	logger.CheckFatal(err)
 	_ = os.WriteFile(dest, file, 0600)
 }
 
-func check(err error) {
-	if err != nil {
-		zap.S().Fatalf("Something went wrong: %q", err)
-	}
-}
+

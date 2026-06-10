@@ -2,8 +2,6 @@ package main
 
 import (
 	"flag"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"os"
 	"testing"
 	"time"
@@ -14,6 +12,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
 	"github.com/urfave/cli/v2"
+	"github.com/theurichde/go-aws-sso/pkg/logger"
+	"go.uber.org/zap/zapcore"
 )
 
 type mockSSOOIDCClient struct {
@@ -65,7 +65,9 @@ func (t mockTime) Now() time.Time {
 func Test_start(t *testing.T) {
 	os.Remove(os.TempDir() + "/go-aws-sso.lock")
 	temp, err := os.CreateTemp("", "go-aws-sso_start")
-	check(err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	CredentialsFilePath = temp.Name()
 	defer func(path string) {
 		os.RemoveAll(path)
@@ -252,13 +254,11 @@ func Test_initializeLogger(t *testing.T) {
 			},
 		},
 	}
-	// replace the zap logger with a temporary instance
-	emptyLogger := &zap.Logger{}
-	reset := zap.ReplaceGlobals(emptyLogger)
-	defer reset()
 	for _, tt := range tests {
-		zap.ReplaceGlobals(emptyLogger)
 		t.Run(tt.name, func(t *testing.T) {
+			original := logger.L
+			defer logger.SetLogger(original)
+
 			flagSet := flag.NewFlagSet("test-set", flag.ContinueOnError)
 			flagSet.Bool("debug", false, "")
 			flagPtr := flagSet.Bool("quiet", false, "")
@@ -272,21 +272,34 @@ func Test_initializeLogger(t *testing.T) {
 			context := cli.NewContext(nil, flagSet, nil)
 
 			initializeLogger(context)
-			initializedLogger := zap.L()
-			if initializedLogger == emptyLogger {
-				t.Errorf("initializeLogger() did not initialize the logger")
+
+			if _, ok := logger.L.(*logger.QuietLogger); ok {
+				wantQuiet := tt.want == levelsEnabled{}
+				if !wantQuiet {
+					t.Errorf("expected ZapLogger but got QuietLogger")
+				}
+				return
 			}
-			// check if the logger is enabled for the desired levels
+
+			zl, ok := logger.L.(*logger.ZapLogger)
+			if !ok {
+				t.Fatalf("expected *logger.ZapLogger, got %T", logger.L)
+			}
 			gotLevels := levelsEnabled{
-				fatal: initializedLogger.Core().Enabled(zapcore.FatalLevel),
-				error: initializedLogger.Core().Enabled(zapcore.ErrorLevel),
-				warn:  initializedLogger.Core().Enabled(zapcore.WarnLevel),
-				info:  initializedLogger.Core().Enabled(zapcore.InfoLevel),
-				debug: initializedLogger.Core().Enabled(zapcore.DebugLevel),
+				fatal: zl.IsLevelEnabled(zapcore.FatalLevel),
+				error: zl.IsLevelEnabled(zapcore.ErrorLevel),
+				warn:  zl.IsLevelEnabled(zapcore.WarnLevel),
+				info:  zl.IsLevelEnabled(zapcore.InfoLevel),
+				debug: zl.IsLevelEnabled(zapcore.DebugLevel),
 			}
 			if tt.want != gotLevels {
 				t.Errorf("Got: %v, but wanted: %v", gotLevels, tt.want)
 			}
 		})
 	}
+}
+
+func TestMain(m *testing.M) {
+	logger.SetLogger(&logger.TestLogger{})
+	os.Exit(m.Run())
 }
