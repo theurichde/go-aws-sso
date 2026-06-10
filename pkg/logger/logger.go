@@ -5,6 +5,7 @@ package logger
 
 import (
 	"fmt"
+	"os"
 
 	"go.uber.org/zap"
 )
@@ -21,10 +22,14 @@ type Logger interface {
 	Errorf(template string, args ...interface{})
 	Fatal(args ...interface{})
 	Fatalf(template string, args ...interface{})
+	Panic(args ...interface{})
+	Panicf(template string, args ...interface{})
 }
 
 // L is the application-wide logger. Set via SetLogger at startup.
 // Defaults to NoopLogger (silent) until initialized.
+// Not safe for concurrent use; SetLogger should be called once before
+// any goroutines that use L are started.
 var L Logger = &NoopLogger{}
 
 // SetLogger replaces the global application logger.
@@ -45,6 +50,8 @@ func (z *ZapLogger) Error(args ...interface{})                   { zap.S().Error
 func (z *ZapLogger) Errorf(template string, args ...interface{})  { zap.S().Errorf(template, args...) }
 func (z *ZapLogger) Fatal(args ...interface{})                   { zap.S().Fatal(args...) }
 func (z *ZapLogger) Fatalf(template string, args ...interface{})  { zap.S().Fatalf(template, args...) }
+func (z *ZapLogger) Panic(args ...interface{})                   { zap.S().Panic(args...) }
+func (z *ZapLogger) Panicf(template string, args ...interface{})  { zap.S().Panicf(template, args...) }
 
 // NoopLogger implements Logger by discarding all log messages.
 type NoopLogger struct{}
@@ -55,13 +62,15 @@ func (n *NoopLogger) Info(args ...interface{})                    {}
 func (n *NoopLogger) Infof(template string, args ...interface{})  {}
 func (n *NoopLogger) Warn(args ...interface{})                    {}
 func (n *NoopLogger) Warnf(template string, args ...interface{})  {}
-func (n *NoopLogger) Error(args ...interface{})                   {}
+func (n *NoopLogger) Error(args ...interface{})                    {}
 func (n *NoopLogger) Errorf(template string, args ...interface{}) {}
-func (n *NoopLogger) Fatal(args ...interface{})                   {}
-func (n *NoopLogger) Fatalf(template string, args ...interface{}) {}
+func (n *NoopLogger) Fatal(args ...interface{})                   { os.Exit(1) }
+func (n *NoopLogger) Fatalf(template string, args ...interface{}) { os.Exit(1) }
+func (n *NoopLogger) Panic(args ...interface{})                   { panic(fmt.Sprint(args...)) }
+func (n *NoopLogger) Panicf(template string, args ...interface{}) { panic(fmt.Sprintf(template, args...)) }
 
-// TestLogger implements Logger and panics on Fatal calls instead of
-// calling os.Exit. Other log levels output via fmt for test visibility.
+// TestLogger implements Logger and panics on Fatal/Panic calls instead of
+// calling os.Exit. Error-level messages are printed via fmt; other levels are silent.
 type TestLogger struct{}
 
 func (t *TestLogger) Debug(args ...interface{})                   {}
@@ -81,4 +90,10 @@ func (t *TestLogger) Fatal(args ...interface{}) {
 }
 func (t *TestLogger) Fatalf(template string, args ...interface{}) {
 	panic(fmt.Sprintf("FATAL: "+template, args...))
+}
+func (t *TestLogger) Panic(args ...interface{}) {
+	panic("PANIC: " + fmt.Sprint(args...))
+}
+func (t *TestLogger) Panicf(template string, args ...interface{}) {
+	panic(fmt.Sprintf("PANIC: "+template, args...))
 }

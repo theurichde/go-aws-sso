@@ -61,7 +61,7 @@ func TestDefaultLoggerIsNoop(t *testing.T) {
 	}
 }
 
-func TestNoopLogger_AllMethodsNoPanic(t *testing.T) {
+func TestNoopLogger_NonFatalMethodsNoPanic(t *testing.T) {
 	n := &NoopLogger{}
 	n.Debug("x")
 	n.Debugf("x %s", "y")
@@ -71,8 +71,46 @@ func TestNoopLogger_AllMethodsNoPanic(t *testing.T) {
 	n.Warnf("x %s", "y")
 	n.Error("x")
 	n.Errorf("x %s", "y")
-	n.Fatal("x")
-	n.Fatalf("x %s", "y")
+}
+
+func TestNoopLogger_PanicPanics(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("expected panic from NoopLogger.Panic, got none")
+		}
+	}()
+	n := &NoopLogger{}
+	n.Panic("test panic")
+}
+
+func TestNoopLogger_PanicfPanics(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("expected panic from NoopLogger.Panicf, got none")
+		}
+	}()
+	n := &NoopLogger{}
+	n.Panicf("test panic %s", "arg")
+}
+
+func TestTestLogger_PanicPanics(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("expected panic from TestLogger.Panic, got none")
+		}
+	}()
+	l := &TestLogger{}
+	l.Panic("test panic")
+}
+
+func TestTestLogger_PanicfPanics(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("expected panic from TestLogger.Panicf, got none")
+		}
+	}()
+	l := &TestLogger{}
+	l.Panicf("test panic %s", "arg")
 }
 
 func TestZapLogger_CallsDontPanic(t *testing.T) {
@@ -88,4 +126,28 @@ func TestZapLogger_CallsDontPanic(t *testing.T) {
 	z.Warnf("test %s", "arg")
 	z.Error("test")
 	z.Errorf("test %s", "arg")
+}
+
+func TestZapLogger_PanicPanics(t *testing.T) {
+	zap.ReplaceGlobals(zap.NewNop())
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("expected panic from ZapLogger.Panic, got none")
+		}
+	}()
+	z := &ZapLogger{}
+	z.Panic("test")
+}
+
+func TestZapLogger_PanicfPanics(t *testing.T) {
+	zap.ReplaceGlobals(zap.NewNop())
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("expected panic from ZapLogger.Panicf, got none")
+		}
+	}()
+	z := &ZapLogger{}
+	z.Panicf("test %s", "arg")
 }

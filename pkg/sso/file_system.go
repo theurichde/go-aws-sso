@@ -98,7 +98,7 @@ func isFileOrFolderExisting(target string) bool {
 	} else if os.IsNotExist(err) {
 		return false
 	} else {
-		logger.L.Fatalf("Could not determine if file or folder %s exists or not. Exiting.", target)
+		logger.L.Panicf("Could not determine if file or folder %s exists or not. Exiting.", target)
 		return false
 	}
 }
