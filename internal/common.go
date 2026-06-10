@@ -1,7 +1,7 @@
 package internal
 
 import (
-	logger "github.com/theurichde/go-aws-sso/pkg/logger"
+	"github.com/theurichde/go-aws-sso/pkg/logger"
 )
 
 func check(err error) {

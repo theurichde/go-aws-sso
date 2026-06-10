@@ -19,7 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
-	logger "github.com/theurichde/go-aws-sso/pkg/logger"
+	"github.com/theurichde/go-aws-sso/pkg/logger"
 )
 
 const grantType = "urn:ietf:params:oauth:grant-type:device_code"

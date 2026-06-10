@@ -7,7 +7,7 @@ import (
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
 	"github.com/urfave/cli/v2"
-	logger "github.com/theurichde/go-aws-sso/pkg/logger"
+	"github.com/theurichde/go-aws-sso/pkg/logger"
 	"gopkg.in/yaml.v3"
 )
 

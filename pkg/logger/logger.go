@@ -27,10 +27,10 @@ type Logger interface {
 }
 
 // L is the application-wide logger. Set via SetLogger at startup.
-// Defaults to NoopLogger (silent) until initialized.
+// Defaults to QuietLogger (silent) until initialized.
 // Not safe for concurrent use; SetLogger should be called once before
 // any goroutines that use L are started.
-var L Logger = &NoopLogger{}
+var L Logger = &QuietLogger{}
 
 // SetLogger replaces the global application logger.
 func SetLogger(l Logger) {
@@ -53,21 +53,22 @@ func (z *ZapLogger) Fatalf(template string, args ...interface{})  { zap.S().Fata
 func (z *ZapLogger) Panic(args ...interface{})                   { zap.S().Panic(args...) }
 func (z *ZapLogger) Panicf(template string, args ...interface{})  { zap.S().Panicf(template, args...) }
 
-// NoopLogger implements Logger by discarding all log messages.
-type NoopLogger struct{}
+// QuietLogger implements Logger by discarding all log messages.
+// Fatal and Fatalf still exit the process; Panic and Panicf still panic.
+type QuietLogger struct{}
 
-func (n *NoopLogger) Debug(args ...interface{})                   {}
-func (n *NoopLogger) Debugf(template string, args ...interface{}) {}
-func (n *NoopLogger) Info(args ...interface{})                    {}
-func (n *NoopLogger) Infof(template string, args ...interface{})  {}
-func (n *NoopLogger) Warn(args ...interface{})                    {}
-func (n *NoopLogger) Warnf(template string, args ...interface{})  {}
-func (n *NoopLogger) Error(args ...interface{})                    {}
-func (n *NoopLogger) Errorf(template string, args ...interface{}) {}
-func (n *NoopLogger) Fatal(args ...interface{})                   { os.Exit(1) }
-func (n *NoopLogger) Fatalf(template string, args ...interface{}) { os.Exit(1) }
-func (n *NoopLogger) Panic(args ...interface{})                   { panic(fmt.Sprint(args...)) }
-func (n *NoopLogger) Panicf(template string, args ...interface{}) { panic(fmt.Sprintf(template, args...)) }
+func (n *QuietLogger) Debug(args ...interface{})                   {}
+func (n *QuietLogger) Debugf(template string, args ...interface{}) {}
+func (n *QuietLogger) Info(args ...interface{})                    {}
+func (n *QuietLogger) Infof(template string, args ...interface{})  {}
+func (n *QuietLogger) Warn(args ...interface{})                    {}
+func (n *QuietLogger) Warnf(template string, args ...interface{})  {}
+func (n *QuietLogger) Error(args ...interface{})                    {}
+func (n *QuietLogger) Errorf(template string, args ...interface{}) {}
+func (n *QuietLogger) Fatal(args ...interface{})                   { os.Exit(1) }
+func (n *QuietLogger) Fatalf(template string, args ...interface{}) { os.Exit(1) }
+func (n *QuietLogger) Panic(args ...interface{})                   { panic(fmt.Sprint(args...)) }
+func (n *QuietLogger) Panicf(template string, args ...interface{}) { panic(fmt.Sprintf(template, args...)) }
 
 // TestLogger implements Logger and panics on Fatal/Panic calls instead of
 // calling os.Exit. Error-level messages are printed via fmt; other levels are silent.
@@ -80,10 +81,10 @@ func (t *TestLogger) Infof(template string, args ...interface{})  {}
 func (t *TestLogger) Warn(args ...interface{})                    {}
 func (t *TestLogger) Warnf(template string, args ...interface{})  {}
 func (t *TestLogger) Error(args ...interface{}) {
-	fmt.Println("ERROR:", fmt.Sprint(args...))
+	fmt.Fprintln(os.Stderr, "ERROR:", fmt.Sprint(args...))
 }
 func (t *TestLogger) Errorf(template string, args ...interface{}) {
-	fmt.Printf("ERROR: "+template+"\n", args...)
+	fmt.Fprintf(os.Stderr, "ERROR: "+template+"\n", args...)
 }
 func (t *TestLogger) Fatal(args ...interface{}) {
 	panic("FATAL: " + fmt.Sprint(args...))

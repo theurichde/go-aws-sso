@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
 	"github.com/urfave/cli/v2"
-	logger "github.com/theurichde/go-aws-sso/pkg/logger"
+	"github.com/theurichde/go-aws-sso/pkg/logger"
 )
 
 type LastUsageInformation struct {

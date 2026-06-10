@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"strings"
 	"testing"
 
 	"go.uber.org/zap"
@@ -11,8 +12,8 @@ func TestZapLogger_InterfaceSatisfaction(t *testing.T) {
 	_ = l
 }
 
-func TestNoopLogger_InterfaceSatisfaction(t *testing.T) {
-	var l Logger = &NoopLogger{}
+func TestQuietLogger_InterfaceSatisfaction(t *testing.T) {
+	var l Logger = &QuietLogger{}
 	_ = l
 }
 
@@ -23,8 +24,11 @@ func TestTestLogger_InterfaceSatisfaction(t *testing.T) {
 
 func TestTestLogger_FatalPanics(t *testing.T) {
 	defer func() {
-		if r := recover(); r == nil {
+		r := recover()
+		if r == nil {
 			t.Errorf("expected panic from TestLogger.Fatal, got none")
+		} else if s, ok := r.(string); !ok || !strings.HasPrefix(s, "FATAL:") {
+			t.Errorf("expected panic to contain FATAL: prefix, got %v", r)
 		}
 	}()
 	l := &TestLogger{}
@@ -33,8 +37,11 @@ func TestTestLogger_FatalPanics(t *testing.T) {
 
 func TestTestLogger_FatalfPanics(t *testing.T) {
 	defer func() {
-		if r := recover(); r == nil {
+		r := recover()
+		if r == nil {
 			t.Errorf("expected panic from TestLogger.Fatalf, got none")
+		} else if s, ok := r.(string); !ok || !strings.HasPrefix(s, "FATAL:") {
+			t.Errorf("expected panic to contain FATAL: prefix, got %v", r)
 		}
 	}()
 	l := &TestLogger{}
@@ -51,18 +58,18 @@ func TestSetLogger(t *testing.T) {
 	}
 }
 
-func TestDefaultLoggerIsNoop(t *testing.T) {
+func TestDefaultLoggerIsQuiet(t *testing.T) {
 	original := L
 	defer SetLogger(original)
 
-	SetLogger(&NoopLogger{})
-	if _, ok := L.(*NoopLogger); !ok {
-		t.Errorf("expected default L to be *NoopLogger, got %T", L)
+	SetLogger(&QuietLogger{})
+	if _, ok := L.(*QuietLogger); !ok {
+		t.Errorf("expected L to be *QuietLogger, got %T", L)
 	}
 }
 
-func TestNoopLogger_NonFatalMethodsNoPanic(t *testing.T) {
-	n := &NoopLogger{}
+func TestQuietLogger_NonFatalMethodsNoPanic(t *testing.T) {
+	n := &QuietLogger{}
 	n.Debug("x")
 	n.Debugf("x %s", "y")
 	n.Info("x")
@@ -73,30 +80,39 @@ func TestNoopLogger_NonFatalMethodsNoPanic(t *testing.T) {
 	n.Errorf("x %s", "y")
 }
 
-func TestNoopLogger_PanicPanics(t *testing.T) {
+func TestQuietLogger_PanicPanics(t *testing.T) {
 	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("expected panic from NoopLogger.Panic, got none")
+		r := recover()
+		if r == nil {
+			t.Errorf("expected panic from QuietLogger.Panic, got none")
+		} else if s, ok := r.(string); !ok || !strings.HasPrefix(s, "test panic") {
+			t.Errorf("expected panic to contain message, got %v", r)
 		}
 	}()
-	n := &NoopLogger{}
+	n := &QuietLogger{}
 	n.Panic("test panic")
 }
 
-func TestNoopLogger_PanicfPanics(t *testing.T) {
+func TestQuietLogger_PanicfPanics(t *testing.T) {
 	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("expected panic from NoopLogger.Panicf, got none")
+		r := recover()
+		if r == nil {
+			t.Errorf("expected panic from QuietLogger.Panicf, got none")
+		} else if s, ok := r.(string); !ok || !strings.HasPrefix(s, "test panic arg") {
+			t.Errorf("expected panic to contain message, got %v", r)
 		}
 	}()
-	n := &NoopLogger{}
+	n := &QuietLogger{}
 	n.Panicf("test panic %s", "arg")
 }
 
 func TestTestLogger_PanicPanics(t *testing.T) {
 	defer func() {
-		if r := recover(); r == nil {
+		r := recover()
+		if r == nil {
 			t.Errorf("expected panic from TestLogger.Panic, got none")
+		} else if s, ok := r.(string); !ok || !strings.HasPrefix(s, "PANIC:") {
+			t.Errorf("expected panic to contain PANIC: prefix, got %v", r)
 		}
 	}()
 	l := &TestLogger{}
@@ -105,8 +121,11 @@ func TestTestLogger_PanicPanics(t *testing.T) {
 
 func TestTestLogger_PanicfPanics(t *testing.T) {
 	defer func() {
-		if r := recover(); r == nil {
+		r := recover()
+		if r == nil {
 			t.Errorf("expected panic from TestLogger.Panicf, got none")
+		} else if s, ok := r.(string); !ok || !strings.HasPrefix(s, "PANIC:") {
+			t.Errorf("expected panic to contain PANIC: prefix, got %v", r)
 		}
 	}()
 	l := &TestLogger{}
@@ -150,4 +169,8 @@ func TestZapLogger_PanicfPanics(t *testing.T) {
 	}()
 	z := &ZapLogger{}
 	z.Panicf("test %s", "arg")
+}
+
+func TestQuietLogger_FatalExits(t *testing.T) {
+	t.Skip("QuietLogger.Fatal calls os.Exit(1); cannot test in-process")
 }

@@ -13,7 +13,7 @@ import (
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
 	"github.com/urfave/cli/v2"
 	"github.com/urfave/cli/v2/altsrc"
-	logger "github.com/theurichde/go-aws-sso/pkg/logger"
+	"github.com/theurichde/go-aws-sso/pkg/logger"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -283,7 +283,7 @@ func applyForceFlag(context *cli.Context) {
 func initializeLogger(context *cli.Context) {
 	if context.Bool("quiet") {
 		zap.ReplaceGlobals(zap.NewNop())
-		logger.SetLogger(&logger.NoopLogger{})
+		logger.SetLogger(&logger.QuietLogger{})
 		return
 	}
 	config := zap.NewProductionEncoderConfig()

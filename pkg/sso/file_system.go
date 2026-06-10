@@ -8,7 +8,7 @@ import (
 	"path"
 
 	"github.com/aws/aws-sdk-go/service/sso"
-	logger "github.com/theurichde/go-aws-sso/pkg/logger"
+	"github.com/theurichde/go-aws-sso/pkg/logger"
 	"gopkg.in/ini.v1"
 )
 
