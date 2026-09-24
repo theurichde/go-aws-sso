@@ -51,6 +51,8 @@ var AwsRegions = []string{
 	"sa-east-1",
 	"us-gov-east-1",
 	"us-gov-west-1",
+	"cn-north-1",
+	"cn-northwest-1",
 }
 
 type ClientInformation struct {
