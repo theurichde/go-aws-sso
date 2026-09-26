@@ -30,7 +30,7 @@ Make working with AWS SSO on local machines an ease.
 ### Installation
 
 - via homebrew
-    - `brew tap theurichde/go-aws-sso && brew install go-aws-sso`
+    - `brew install --cask theurichde/go-aws-sso/go-aws-sso`
 - Download your according target platform binary from
   the [releases page](https://github.com/theurichde/go-aws-sso/releases)
 - Compile from source with `go build -v ./cmd/go-aws-sso`
