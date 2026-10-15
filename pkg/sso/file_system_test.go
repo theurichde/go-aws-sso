@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/theurichde/go-aws-sso/pkg/logger"
 	"gopkg.in/ini.v1"
 )
 
@@ -92,13 +93,13 @@ func TestWriteClientInfoToFile(t *testing.T) {
 
 func createTempFolder() string {
 	temp, err := os.MkdirTemp("", "write-client-info-test")
-	check(err)
+	logger.CheckFatal(err)
 	return temp
 }
 
 func createTempFile() string {
 	file, err := os.CreateTemp("", "write-client-info-test")
-	check(err)
+	logger.CheckFatal(err)
 	return file.Name()
 }
 

@@ -2,12 +2,14 @@ package internal
 
 import (
 	"flag"
-	"github.com/urfave/cli/v2"
-	"gopkg.in/yaml.v3"
 	"os"
 	"path"
 	"reflect"
 	"testing"
+
+	"github.com/theurichde/go-aws-sso/pkg/logger"
+	"github.com/urfave/cli/v2"
+	"gopkg.in/yaml.v3"
 )
 
 func TestWriteConfig(t *testing.T) {
@@ -69,4 +71,9 @@ func fail(err error, t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %q", err)
 	}
+}
+
+func TestMain(m *testing.M) {
+	logger.SetLogger(&logger.TestLogger{})
+	os.Exit(m.Run())
 }

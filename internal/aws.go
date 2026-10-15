@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sso"
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
-	"go.uber.org/zap"
+	"github.com/theurichde/go-aws-sso/pkg/logger"
 )
 
 func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInformation, ssoClient ssoiface.SSOAPI, selector Prompt) (*sso.RoleInfo, awserr.RequestFailure) {
@@ -23,7 +23,7 @@ func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInfo
 			if awsError, ok := err.(awserr.RequestFailure); ok {
 				return nil, awsError
 			}
-			check(err)
+			logger.CheckFatal(err)
 		}
 
 		allRoles = append(allRoles, roles.RoleList...)
@@ -35,7 +35,7 @@ func RetrieveRoleInfo(accountInfo *sso.AccountInfo, clientInformation ClientInfo
 	}
 
 	if len(allRoles) == 1 {
-		zap.S().Infof("Only one role available. Selected role: %s\n", *allRoles[0].RoleName)
+		logger.L.Infof("Only one role available. Selected role: %s\n", *allRoles[0].RoleName)
 		return allRoles[0], nil
 	}
 
@@ -63,7 +63,7 @@ func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface
 			if awsError, ok := err.(awserr.RequestFailure); ok {
 				return nil, awsError
 			}
-			check(err)
+			logger.CheckFatal(err)
 		}
 
 		allAccounts = append(allAccounts, accounts.AccountList...)
@@ -91,7 +91,7 @@ func RetrieveAccountInfo(clientInformation ClientInformation, ssoClient ssoiface
 
 	accountInfo := sortedAccounts[indexChoice]
 
-	zap.S().Infof("Selected account: %s - %s", *accountInfo.AccountName, *accountInfo.AccountId)
+	logger.L.Infof("Selected account: %s - %s", *accountInfo.AccountName, *accountInfo.AccountId)
 	fmt.Println()
 	return &accountInfo, nil
 }
