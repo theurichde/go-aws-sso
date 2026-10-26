@@ -33,7 +33,7 @@ homebrew_casks:
       post:
         install_steps: |
           on_macos do
-            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/go-aws-sso"]
+            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/go-aws-sso"], must_succeed: false
           end
     commit_author:
       name: goreleaserbot
