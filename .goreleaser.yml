@@ -19,16 +19,22 @@ builds:
 release:
   draft: true
 
-brews:
+homebrew_casks:
   - repository:
       owner: theurichde
       name: homebrew-go-aws-sso
-    directory: Formula
+    directory: Casks
     homepage: https://github.com/theurichde/go-aws-sso
     description: "Interactive CLI tool for AWS Single Sign-On (SSO)"
     license: MIT
-    test: |
-      system "#{bin}/go-aws-sso", "help"
+    binaries:
+      - go-aws-sso
+    hooks:
+      post:
+        install_steps: |
+          on_macos do
+            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/go-aws-sso"], must_succeed: false
+          end
     commit_author:
       name: goreleaserbot
       email: bot@goreleaser.com
