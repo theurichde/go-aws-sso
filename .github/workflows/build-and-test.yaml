@@ -8,6 +8,7 @@ on:
       - '**.go'
       - 'go.mod'
       - 'go.sum'
+      - '.goreleaser.yml'
       - '.github/workflows/build-and-test.yaml'
 
 jobs:
@@ -45,3 +46,17 @@ jobs:
           go clean -r -x -cache
           go test -v ./...
           go test -v github.com/theurichde/go-aws-sso/internal
+
+  validate-goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate GoReleaser config
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: latest
+          args: check
