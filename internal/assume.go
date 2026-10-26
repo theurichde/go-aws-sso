@@ -36,6 +36,15 @@ func AssumeDirectly(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAP
 		template := ProcessCredentialProcessTemplate(accountId, roleName, context.String("region"), context.String("profile"))
 		WriteAWSCredentialsFile(&template, context.String("profile"))
 
+		// The credential_process output is meant for the AWS SDK/CLI, which reads it from a pipe.
+		// Don't dump raw credentials when a user runs the command in a terminal.
+		if stdoutIsTerminal() {
+			zap.S().Infof("Successful retrieved credentials for account: %s", accountId)
+			zap.S().Infof("Assumed role: %s", roleName)
+			zap.S().Infof("Configured credential_process for profile: %s", context.String("profile"))
+			return
+		}
+
 		creds := CredentialProcessOutput{
 			Version:         1,
 			AccessKeyId:     *roleCredentials.RoleCredentials.AccessKeyId,
@@ -49,6 +58,12 @@ func AssumeDirectly(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAP
 		check(err)
 	}
 
+}
+
+// stdoutIsTerminal reports whether stdout is attached to a terminal rather than a pipe or file.
+var stdoutIsTerminal = func() bool {
+	info, err := os.Stdout.Stat()
+	return err == nil && info.Mode()&os.ModeCharDevice != 0
 }
 
 type CredentialProcessOutput struct {
