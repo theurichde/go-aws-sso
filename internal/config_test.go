@@ -6,9 +6,43 @@ import (
 	"gopkg.in/yaml.v3"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
 	"testing"
 )
+
+func TestConfigFilePath(t *testing.T) {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, customPath := range []string{"", filepath.Join(t.TempDir(), "portal.yaml"), "./portal-b.yml"} {
+		t.Run(customPath, func(t *testing.T) {
+			want := customPath
+			if want == "" {
+				want = filepath.Join(configDir, "go-aws-sso", "config.yml")
+			}
+			if got := ConfigFilePath(customPath); got != want {
+				t.Errorf("ConfigFilePath() = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
+func TestGenerateConfigInNestedDirectory(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "SSO configs", "portal", "config.yaml")
+	flags := flag.NewFlagSet("generate", flag.ContinueOnError)
+	flags.String("config-path", configPath, "")
+	flags.String("start-url", "https://portal.awsapps.com/start", "")
+	flags.String("region", "eu-central-1", "")
+	if err := GenerateConfigAction(cli.NewContext(nil, flags, nil)); err != nil {
+		t.Fatal(err)
+	}
+	config := ReadConfig(configPath)
+	if config.StartUrl != "https://portal.awsapps.com/start" || config.Region != "eu-central-1" {
+		t.Fatalf("unexpected generated config: %+v", config)
+	}
+}
 
 func TestWriteConfig(t *testing.T) {
 	type args struct {

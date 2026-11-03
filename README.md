@@ -112,6 +112,25 @@ OPTIONS:
 
 ### Configuration
 
+Use the optional global `--config-path` flag before any subcommand to choose both the directory and YAML filename, for example to switch between SSO portals:
+
+**Note:** `--config-path` is optional, but when used it must appear before any subcommand (`assume`, `refresh`, or `config`), not among the subcommand's options.
+
+```bash
+go-aws-sso --config-path "$HOME/sso/portal-a.yaml"
+go-aws-sso --config-path "$HOME/sso/portal-a.yaml" config generate --start-url YOUR_START_URL --region YOUR_REGION
+go-aws-sso --config-path "$HOME/sso/portal-b.yaml" assume --account-id YOUR_ID --role-name YOUR_ROLE_NAME --profile YOUR_PROFILE_NAME
+```
+
+Each file can supply the portal settings:
+
+```yaml
+start-url: "https://your-company.awsapps.com/start"
+region: "eu-central-1"
+```
+
+Explicit CLI flags override YAML values. The selected path is also used by `config generate` and `config edit`. If it does not exist, the file and parent directories are created using supplied settings, prompting for missing values. Without `--config-path`, the existing default remains: `go-aws-sso/config.yml` inside the OS user config directory.
+
 * If you want to point to a specific non-default Browser, do so via the `BROWSER` environment variable
 
 #### Headless Mode
@@ -214,6 +233,7 @@ COMMANDS:
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
+   --config-path value          path to the YAML config file (defaults to the OS user config directory/go-aws-sso/config.yml)
    --start-url value, -u value  set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)
    --region value, -r value     set / override the AWS region
    --profile value, -p value    the profile name you want to set in your ~/.aws/credentials file (default: "default")

@@ -3,11 +3,15 @@ package sso
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"path"
+	"path/filepath"
+	"runtime"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/service/sso"
+	"github.com/sergeymakinen/go-quote/unix"
+	"github.com/sergeymakinen/go-quote/windows"
 	"go.uber.org/zap"
 	"gopkg.in/ini.v1"
 )
@@ -34,15 +38,35 @@ func ProcessPersistedCredentialsTemplate(credentials *sso.GetRoleCredentialsOutp
 	return profileTemplate
 }
 
-func ProcessCredentialProcessTemplate(accountId string, roleName string, region string, profile string) CredentialsFileTemplate {
+func ProcessCredentialProcessTemplate(accountId string, roleName string, region string, profile string, configPath string) CredentialsFileTemplate {
 	exeName, err := os.Executable()
 	check(err)
-	return processCredentialProcessTemplateWithExeName(exeName, accountId, roleName, region, profile)
+	if configPath != "" {
+		configPath, err = filepath.Abs(configPath)
+		check(err)
+	}
+	return processCredentialProcessTemplateWithExeName(exeName, accountId, roleName, region, profile, configPath)
 }
 
-func processCredentialProcessTemplateWithExeName(exeName string, accountId string, roleName string, region string, profile string) CredentialsFileTemplate {
+func processCredentialProcessTemplateWithExeName(exeName string, accountId string, roleName string, region string, profile string, configPath string) CredentialsFileTemplate {
+	args := []string{exeName}
+	if configPath != "" {
+		args = append(args, "--config-path", configPath)
+	}
+	args = append(args, "assume", "-q", "-a", accountId, "-n", roleName, "-p", profile)
+	// Select OS-specific argument quoting for Windows support.
+	for i, arg := range args {
+		if arg != "" && !strings.ContainsAny(arg, " \t\r\n\"\\$`'&;|<>()!%*?#") {
+			continue
+		}
+		if runtime.GOOS == "windows" {
+			args[i] = windows.Cmd.Quote(windows.Argv.Quote(arg))
+		} else {
+			args[i] = unix.SingleQuote.Quote(arg)
+		}
+	}
 	profileTemplate := CredentialsFileTemplate{
-		CredentialProcess: fmt.Sprintf("%s assume -q -a %s -n %s -p %s", exeName, accountId, roleName, profile),
+		CredentialProcess: strings.Join(args, " "),
 		Region:            region,
 	}
 	return profileTemplate

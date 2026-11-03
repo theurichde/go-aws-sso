@@ -33,7 +33,7 @@ func AssumeDirectly(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAP
 		zap.S().Infof("Assumed role: %s", roleName)
 		zap.S().Infof("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
 	} else {
-		template := ProcessCredentialProcessTemplate(accountId, roleName, context.String("region"), context.String("profile"))
+		template := ProcessCredentialProcessTemplate(accountId, roleName, context.String("region"), context.String("profile"), context.String("config-path"))
 		WriteAWSCredentialsFile(&template, context.String("profile"))
 
 		// The credential_process output is meant for the AWS SDK/CLI, which reads it from a pipe.

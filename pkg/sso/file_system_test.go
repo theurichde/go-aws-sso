@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"runtime"
 	"testing"
 	"time"
 
@@ -141,14 +142,30 @@ func TestWriteAWSCredentialsFile(t *testing.T) {
 
 func TestProcessCredentialProcessTemplateWithExeName(t *testing.T) {
 	testCases := []struct {
-		name         string
-		exeName      string
-		accountId    string
-		roleName     string
-		region       string
-		profile      string
-		fileTemplate CredentialsFileTemplate
+		name                     string
+		exeName                  string
+		accountId                string
+		roleName                 string
+		region                   string
+		profile                  string
+		configPath               string
+		fileTemplate             CredentialsFileTemplate
+		windowsCredentialProcess string
 	}{
+		{
+			name:       "config path with spaces",
+			exeName:    "go-aws-sso",
+			accountId:  "accountid",
+			roleName:   "rolename",
+			region:     "region",
+			profile:    "portal-a",
+			configPath: "/some directory/portal-a.yaml",
+			fileTemplate: CredentialsFileTemplate{
+				CredentialProcess: fmt.Sprintf("%s --config-path %s assume -q -a accountid -n rolename -p portal-a", "go-aws-sso", `'/some directory/portal-a.yaml'`),
+				Region:            "region",
+			},
+			windowsCredentialProcess: fmt.Sprintf("%s --config-path %s assume -q -a accountid -n rolename -p portal-a", "go-aws-sso", `^"/some^ directory/portal-a.yaml^"`),
+		},
 		{
 			name:      "exe name has special characters",
 			exeName:   "@exe#name$",
@@ -157,9 +174,10 @@ func TestProcessCredentialProcessTemplateWithExeName(t *testing.T) {
 			region:    "region",
 			profile:   "default",
 			fileTemplate: CredentialsFileTemplate{
-				CredentialProcess: fmt.Sprintf("@exe#name$ assume -q -a accountid -n rolename -p default"),
+				CredentialProcess: fmt.Sprintf("%s assume -q -a accountid -n rolename -p default", `'@exe#name$'`),
 				Region:            "region",
 			},
+			windowsCredentialProcess: fmt.Sprintf("%s assume -q -a accountid -n rolename -p default", `^"@exe#name$^"`),
 		},
 		{
 			name:      "exe name has spaces",
@@ -169,20 +187,25 @@ func TestProcessCredentialProcessTemplateWithExeName(t *testing.T) {
 			region:    "region",
 			profile:   "default",
 			fileTemplate: CredentialsFileTemplate{
-				CredentialProcess: fmt.Sprintf("e x e name assume -q -a accountid -n rolename -p default"),
+				CredentialProcess: fmt.Sprintf("%s assume -q -a accountid -n rolename -p default", `'e x e name'`),
 				Region:            "region",
 			},
+			windowsCredentialProcess: fmt.Sprintf("%s assume -q -a accountid -n rolename -p default", `^"e^ x^ e^ name^"`),
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			if runtime.GOOS == "windows" {
+				tc.fileTemplate.CredentialProcess = tc.windowsCredentialProcess
+			}
 			fileTemplate := processCredentialProcessTemplateWithExeName(
 				tc.exeName,
 				tc.accountId,
 				tc.roleName,
 				tc.region,
 				tc.profile,
+				tc.configPath,
 			)
 			if fileTemplate != tc.fileTemplate {
 				t.Errorf("File template is not equal. Got: %+v, want: %+v", fileTemplate, tc.fileTemplate)
