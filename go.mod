@@ -5,6 +5,7 @@ require (
 	github.com/chzyer/readline v1.5.1
 	github.com/lithammer/fuzzysearch v1.1.8
 	github.com/manifoldco/promptui v0.9.0
+	github.com/sergeymakinen/go-quote v1.1.0
 	github.com/urfave/cli/v2 v2.27.7
 	go.uber.org/zap v1.27.1
 	gopkg.in/ini.v1 v1.67.0
@@ -18,7 +19,7 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

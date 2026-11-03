@@ -104,6 +104,9 @@ func main() {
 			Description: "Refreshes the short living credentials based on your last account and role.",
 			Action: func(context *cli.Context) error {
 				initializeLogger(context)
+				if err := ensureConfigFile(context); err != nil {
+					return err
+				}
 				checkMandatoryFlags(context)
 				applyForceFlag(context)
 				oidcApi, ssoApi := InitClients(context.String("region"))
@@ -119,6 +122,9 @@ func main() {
 			Description: "Assume directly into an account and SSO role",
 			Action: func(context *cli.Context) error {
 				initializeLogger(context)
+				if err := ensureConfigFile(context); err != nil {
+					return err
+				}
 				checkMandatoryFlags(context)
 				applyForceFlag(context)
 				oidcApi, ssoApi := InitClients(context.String("region"))
@@ -163,6 +169,9 @@ func main() {
 				os.Exit(1)
 			}
 
+			if err := ensureConfigFile(context); err != nil {
+				return err
+			}
 			checkMandatoryFlags(context)
 
 			oidcApi, ssoApi := InitClients(context.String("region"))
@@ -170,7 +179,12 @@ func main() {
 			start(oidcApi, ssoApi, context, Prompter{})
 			return nil
 		},
-		Flags:    initialFlags,
+		Flags: append([]cli.Flag{
+			&cli.StringFlag{
+				Name:  "config-path",
+				Usage: "path to the YAML config file (defaults to the OS user config directory/go-aws-sso/config.yml)",
+			},
+		}, initialFlags...),
 		Commands: commands,
 		Before:   readConfigFile(initialFlags),
 		Version:  version,
@@ -184,7 +198,7 @@ func main() {
 
 func readConfigFile(flags []cli.Flag) cli.BeforeFunc {
 	return func(context *cli.Context) error {
-		inputSource, err := altsrc.NewYamlSourceFromFile(ConfigFilePath())
+		inputSource, err := altsrc.NewYamlSourceFromFile(ConfigFilePath(context.String("config-path")))
 		if err != nil {
 			if strings.Contains(err.Error(), "because it does not exist.") {
 				return nil
@@ -196,6 +210,26 @@ func readConfigFile(flags []cli.Flag) cli.BeforeFunc {
 
 		return altsrc.ApplyInputSourceValues(context, inputSource, flags)
 	}
+}
+
+func ensureConfigFile(context *cli.Context) error {
+	if context.String("config-path") == "" {
+		return nil
+	}
+	configPath := ConfigFilePath(context.String("config-path"))
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		if err := GenerateConfigAction(context); err != nil {
+			return err
+		}
+		config := ReadConfig(configPath)
+		if err := context.Set("start-url", config.StartUrl); err != nil {
+			return err
+		}
+		return context.Set("region", config.Region)
+	} else if err != nil {
+		return fmt.Errorf("unable to access config file %q: %w", configPath, err)
+	}
+	return nil
 }
 
 func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context, promptSelector Prompt) {
@@ -227,7 +261,7 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 		WriteAWSCredentialsFile(&template, context.String("profile"))
 		zap.S().Infof("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
 	} else {
-		template := ProcessCredentialProcessTemplate(*accountInfo.AccountId, *roleInfo.RoleName, context.String("region"), context.String("profile"))
+		template := ProcessCredentialProcessTemplate(*accountInfo.AccountId, *roleInfo.RoleName, context.String("region"), context.String("profile"), context.String("config-path"))
 		WriteAWSCredentialsFile(&template, context.String("profile"))
 	}
 
@@ -254,7 +288,7 @@ func checkMandatoryFlags(context *cli.Context) {
 		zap.S().Warn("No Start URL given. Please set it now.")
 		err := GenerateConfigAction(context)
 		check(err)
-		appConfig := ReadConfig(ConfigFilePath())
+		appConfig := ReadConfig(ConfigFilePath(context.String("config-path")))
 		err = context.Set("start-url", appConfig.StartUrl)
 		check(err)
 		err = context.Set("region", appConfig.Region)

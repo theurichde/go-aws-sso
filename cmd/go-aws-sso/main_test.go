@@ -5,6 +5,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -12,9 +13,176 @@ import (
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc"
 	"github.com/aws/aws-sdk-go/service/ssooidc/ssooidciface"
+	. "github.com/theurichde/go-aws-sso/internal"
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
 	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v2/altsrc"
 )
+
+func TestConfigPath(t *testing.T) {
+	tests := []struct {
+		name  string
+		flags []string
+		want  AppConfig
+	}{
+		{
+			name: "settings from YAML",
+			want: AppConfig{StartUrl: "https://portal.awsapps.com/start", Region: "eu-central-1"},
+		},
+		{
+			name:  "CLI flags override YAML",
+			flags: []string{"--start-url", "https://override.awsapps.com/start", "--region", "us-east-1"},
+			want:  AppConfig{StartUrl: "https://override.awsapps.com/start", Region: "us-east-1"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			configPath := filepath.Join(t.TempDir(), "portal.yaml")
+			err := os.WriteFile(configPath, []byte("start-url: https://portal.awsapps.com/start\nregion: eu-central-1\n"), 0600)
+			if err != nil {
+				t.Fatal(err)
+			}
+			called := false
+			action := func(context *cli.Context) error {
+				called = true
+				checkMandatoryFlags(context)
+				if got := context.String("start-url"); got != tt.want.StartUrl {
+					t.Errorf("start-url = %q, want %q", got, tt.want.StartUrl)
+				}
+				if got := context.String("region"); got != tt.want.Region {
+					t.Errorf("region = %q, want %q", got, tt.want.Region)
+				}
+				return nil
+			}
+			flags := []cli.Flag{
+				&cli.StringFlag{Name: "config-path"},
+				altsrc.NewStringFlag(&cli.StringFlag{Name: "start-url"}),
+				altsrc.NewStringFlag(&cli.StringFlag{Name: "region"}),
+			}
+			app := &cli.App{
+				Flags:  flags,
+				Before: readConfigFile(flags),
+				Action: action,
+			}
+			args := []string{"go-aws-sso", "--config-path", configPath}
+			args = append(args, tt.flags...)
+			if err := app.Run(args); err != nil {
+				t.Fatal(err)
+			}
+			if !called {
+				t.Fatal("login action was not called")
+			}
+		})
+	}
+}
+
+func TestMissingConfigPath(t *testing.T) {
+	tests := []struct {
+		name    string
+		command string
+		want    AppConfig
+	}{
+		{
+			name: "root creates missing config",
+			want: AppConfig{StartUrl: "https://portal.awsapps.com/start", Region: "eu-central-1"},
+		},
+		{
+			name:    "assume creates missing config",
+			command: "assume",
+			want:    AppConfig{StartUrl: "https://portal.awsapps.com/start", Region: "eu-central-1"},
+		},
+		{
+			name:    "refresh creates missing config",
+			command: "refresh",
+			want:    AppConfig{StartUrl: "https://portal.awsapps.com/start", Region: "eu-central-1"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			configPath := filepath.Join(t.TempDir(), "nested", "portal.yaml")
+			action := func(context *cli.Context) error {
+				if _, err := os.Stat(configPath); !os.IsNotExist(err) {
+					t.Fatalf("loading should not create a config, got %v", err)
+				}
+				if err := ensureConfigFile(context); err != nil {
+					return err
+				}
+				config := ReadConfig(configPath)
+				if config.StartUrl != context.String("start-url") || config.Region != context.String("region") {
+					t.Fatalf("generated config differs from parsed settings: %+v", config)
+				}
+				return nil
+			}
+			configPathFlag := &cli.StringFlag{Name: "config-path"}
+			flags := []cli.Flag{
+				altsrc.NewStringFlag(&cli.StringFlag{Name: "start-url"}),
+				altsrc.NewStringFlag(&cli.StringFlag{Name: "region"}),
+			}
+			app := &cli.App{
+				Flags:  []cli.Flag{configPathFlag},
+				Action: action,
+			}
+			args := []string{"go-aws-sso", "--config-path", configPath}
+			if tt.command != "" {
+				app.Before = readConfigFile(nil)
+				app.Commands = []*cli.Command{{
+					Name:   tt.command,
+					Flags:  flags,
+					Before: readConfigFile(flags),
+					Action: action,
+				}}
+				args = append(args, tt.command)
+			} else {
+				app.Flags = append(app.Flags, flags...)
+				app.Before = readConfigFile(flags)
+			}
+			settings := []string{"--start-url", tt.want.StartUrl, "--region", tt.want.Region}
+			args = append(args, settings...)
+			if err := app.Run(args); err != nil {
+				t.Fatal(err)
+			}
+			config := ReadConfig(configPath)
+			if *config != tt.want {
+				t.Errorf("got: %+v, want: %+v", *config, tt.want)
+			}
+		})
+	}
+}
+
+func TestMandatoryFlagsDoNotCreateConfig(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "portal.yaml")
+	flags := flag.NewFlagSet("test", flag.ContinueOnError)
+	flags.String("config-path", configPath, "")
+	flags.String("start-url", "https://portal.awsapps.com/start", "")
+	flags.String("region", "eu-central-1", "")
+	checkMandatoryFlags(cli.NewContext(nil, flags, nil))
+	if _, err := os.Stat(configPath); !os.IsNotExist(err) {
+		t.Fatalf("mandatory flag check should not create a config, got %v", err)
+	}
+}
+
+func TestInvalidConfigPath(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "portal.yaml")
+	if err := os.WriteFile(configPath, []byte("region: ["), 0600); err != nil {
+		t.Fatal(err)
+	}
+	flags := []cli.Flag{
+		&cli.StringFlag{Name: "config-path"},
+		altsrc.NewStringFlag(&cli.StringFlag{Name: "start-url"}),
+		altsrc.NewStringFlag(&cli.StringFlag{Name: "region"}),
+	}
+	app := &cli.App{
+		Flags:  flags,
+		Before: readConfigFile(flags),
+		Action: func(*cli.Context) error {
+			t.Fatal("invalid config must not reach login")
+			return nil
+		},
+	}
+	if err := app.Run([]string{"go-aws-sso", "--config-path", configPath}); err == nil {
+		t.Fatal("expected invalid YAML error")
+	}
+}
 
 type mockSSOOIDCClient struct {
 	ssooidciface.SSOOIDCAPI
