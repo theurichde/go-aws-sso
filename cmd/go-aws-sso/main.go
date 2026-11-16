@@ -235,13 +235,14 @@ func ensureConfigFile(context *cli.Context) error {
 func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context, promptSelector Prompt) {
 
 	startUrl := context.String("start-url")
+	configPath := context.String("config-path")
 	LoadRuntimeConfig(context.Bool("headless"))
-	clientInformation := ProcessClientInformation(oidcClient, startUrl)
+	clientInformation := ProcessClientInformation(oidcClient, startUrl, configPath)
 
 	accountInfo, awsErr := RetrieveAccountInfo(clientInformation, ssoClient, promptSelector)
 	if awsErr != nil {
 		if awsErr.StatusCode() == 401 { // unauthorized
-			clientInformation, accountInfo = retryWithNewClientCreds(oidcClient, ssoClient, startUrl, promptSelector)
+			clientInformation, accountInfo = retryWithNewClientCreds(oidcClient, ssoClient, startUrl, configPath, promptSelector)
 		} else {
 			check(awsErr)
 		}
@@ -250,7 +251,7 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 	if roleErr != nil {
 		check(roleErr)
 	}
-	SaveUsageInformation(accountInfo, roleInfo)
+	SaveUsageInformation(accountInfo, roleInfo, startUrl, configPath)
 
 	rci := &sso.GetRoleCredentialsInput{AccountId: accountInfo.AccountId, RoleName: roleInfo.RoleName, AccessToken: &clientInformation.AccessToken}
 	roleCredentials, err := ssoClient.GetRoleCredentials(rci)
@@ -267,10 +268,10 @@ func start(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, contex
 
 }
 
-func retryWithNewClientCreds(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, startUrl string, promptSelector Prompt) (ClientInformation, *sso.AccountInfo) {
-	err := os.Remove(ClientInfoFileDestination())
+func retryWithNewClientCreds(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, startUrl string, configPath string, promptSelector Prompt) (ClientInformation, *sso.AccountInfo) {
+	err := os.Remove(ClientInfoFileDestination(startUrl, configPath, ""))
 	check(err)
-	clientInformation := ProcessClientInformation(oidcClient, startUrl)
+	clientInformation := ProcessClientInformation(oidcClient, startUrl, configPath)
 	accountInfo, awsErr := RetrieveAccountInfo(clientInformation, ssoClient, promptSelector)
 	check(awsErr)
 	return clientInformation, accountInfo
@@ -298,7 +299,7 @@ func checkMandatoryFlags(context *cli.Context) {
 
 func applyForceFlag(context *cli.Context) {
 	if context.Bool("force") {
-		err := os.Remove(ClientInfoFileDestination())
+		err := os.Remove(ClientInfoFileDestination(context.String("start-url"), context.String("config-path"), ""))
 		if err != nil {
 			zap.S().Infof("Nothing to do, no temporary access token found")
 		} else {

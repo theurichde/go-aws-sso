@@ -20,7 +20,7 @@ func AssumeDirectly(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAP
 	LoadRuntimeConfig(context.Bool("headless"))
 	accountId := context.String("account-id")
 	roleName := context.String("role-name")
-	clientInformation := ProcessClientInformation(oidcClient, startUrl)
+	clientInformation := ProcessClientInformation(oidcClient, startUrl, context.String("config-path"))
 	rci := &sso.GetRoleCredentialsInput{AccountId: &accountId, RoleName: &roleName, AccessToken: &clientInformation.AccessToken}
 	roleCredentials, err := ssoClient.GetRoleCredentials(rci)
 	check(err)

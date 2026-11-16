@@ -122,6 +122,13 @@ go-aws-sso --config-path "$HOME/sso/portal-a.yaml" config generate --start-url Y
 go-aws-sso --config-path "$HOME/sso/portal-b.yaml" assume --account-id YOUR_ID --role-name YOUR_ROLE_NAME --profile YOUR_PROFILE_NAME
 ```
 
+Cache files stay in `~/.aws/sso/cache/`:
+
+- Without `--config-path`: existing `access-token.json` and `last-usage.json` are reused, even with `--start-url`.
+- With `--config-path`: filenames include the portal hostname, e.g. `access-token-company.awsapps.com.json` and `last-usage-company.awsapps.com.json`. Sign in and select an account and role on first use.
+
+Custom configs with the same hostname share a cache. Keep the start URL consistent to avoid reauthentication. `--force` removes only the selected cache's token.
+
 Each file can supply the portal settings:
 
 ```yaml

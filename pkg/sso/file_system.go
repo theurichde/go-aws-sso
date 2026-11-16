@@ -136,7 +136,7 @@ func isFileOrFolderExisting(target string) bool {
 func ReadClientInformation(file string) (ClientInformation, error) {
 	if isFileOrFolderExisting(file) {
 		clientInformation := ClientInformation{}
-		content, _ := os.ReadFile(ClientInfoFileDestination())
+		content, _ := os.ReadFile(file)
 		err := json.Unmarshal(content, &clientInformation)
 		check(err)
 		return clientInformation, nil

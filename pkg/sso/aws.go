@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"runtime"
@@ -89,9 +90,20 @@ func InitClients(region string) (ssooidciface.SSOOIDCAPI, ssoiface.SSOAPI) {
 	return oidcClient, ssoClient
 }
 
-func ClientInfoFileDestination() string {
+// ClientInfoFileDestination defaults to access-token and adds the portal hostname for custom configs.
+func ClientInfoFileDestination(startUrl string, configPath string, name string) string {
+	if name == "" {
+		name = "access-token"
+	}
+	if configPath != "" && startUrl != "" {
+		portalName := startUrl
+		if portal, err := url.Parse(startUrl); err == nil && portal.Hostname() != "" {
+			portalName = strings.ToLower(portal.Hostname())
+		}
+		name += fmt.Sprintf("-%s", url.QueryEscape(portalName))
+	}
 	homeDir, _ := os.UserHomeDir()
-	return homeDir + "/.aws/sso/cache/access-token.json"
+	return fmt.Sprintf("%s/.aws/sso/cache/%s.json", homeDir, name)
 }
 
 func (ati ClientInformation) isExpired() bool {
@@ -105,12 +117,12 @@ func (ati ClientInformation) isExpired() bool {
 // If no ClientInformation is available, it creates new ones and writes this information to disk
 // If the start url is overridden and differs from the previous one, a new Client is registered for the given start url.
 // When the ClientInformation.AccessToken is expired, it starts retrieving a new AccessToken
-func ProcessClientInformation(oidcClient ssooidciface.SSOOIDCAPI, startUrl string) ClientInformation {
+func ProcessClientInformation(oidcClient ssooidciface.SSOOIDCAPI, startUrl string, configPath string) ClientInformation {
 	if isAuthorizationFlowLocked() {
 		zap.S().Fatal(lockedAuthFlowMsg)
 	}
 
-	clientInformation, err := ReadClientInformation(ClientInfoFileDestination())
+	clientInformation, err := ReadClientInformation(ClientInfoFileDestination(startUrl, configPath, ""))
 	if err != nil || clientInformation.StartUrl != startUrl {
 		lockAuthorizationFlow()
 		defer unlockAuthorizationFlow()
@@ -118,7 +130,7 @@ func ProcessClientInformation(oidcClient ssooidciface.SSOOIDCAPI, startUrl strin
 		var clientInfoPointer *ClientInformation
 		clientInfoPointer = registerClient(oidcClient, startUrl)
 		clientInfoPointer = retrieveToken(oidcClient, Time{}, clientInfoPointer)
-		WriteStructToFile(clientInfoPointer, ClientInfoFileDestination())
+		WriteStructToFile(clientInfoPointer, ClientInfoFileDestination(startUrl, configPath, ""))
 		clientInformation = *clientInfoPointer
 	} else if clientInformation.isExpired() {
 		if isAuthorizationFlowLocked() {
@@ -127,18 +139,18 @@ func ProcessClientInformation(oidcClient ssooidciface.SSOOIDCAPI, startUrl strin
 			lockAuthorizationFlow()
 			defer unlockAuthorizationFlow()
 			zap.S().Info("AccessToken expired. Start retrieving a new AccessToken")
-			clientInformation = handleOutdatedAccessToken(clientInformation, oidcClient, startUrl)
+			clientInformation = handleOutdatedAccessToken(clientInformation, oidcClient, startUrl, configPath)
 		}
 	}
 	return clientInformation
 }
 
-func handleOutdatedAccessToken(clientInformation ClientInformation, oidcClient ssooidciface.SSOOIDCAPI, startUrl string) ClientInformation {
+func handleOutdatedAccessToken(clientInformation ClientInformation, oidcClient ssooidciface.SSOOIDCAPI, startUrl string, configPath string) ClientInformation {
 	registerClientOutput := ssooidc.RegisterClientOutput{ClientId: &clientInformation.ClientId, ClientSecret: &clientInformation.ClientSecret}
 	clientInformation.DeviceCode = *startDeviceAuthorization(oidcClient, &registerClientOutput, startUrl).DeviceCode
 	var clientInfoPointer *ClientInformation
 	clientInfoPointer = retrieveToken(oidcClient, Time{}, &clientInformation)
-	WriteStructToFile(clientInfoPointer, ClientInfoFileDestination())
+	WriteStructToFile(clientInfoPointer, ClientInfoFileDestination(startUrl, configPath, ""))
 	return *clientInfoPointer
 }
 

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sso"
 	"github.com/aws/aws-sdk-go/service/sso/ssoiface"
 	"github.com/aws/aws-sdk-go/service/ssooidc"
@@ -184,6 +185,100 @@ func TestInvalidConfigPath(t *testing.T) {
 	}
 }
 
+func TestForceRemovesOnlySelectedPortalToken(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("TMPDIR", t.TempDir())
+	configPath := filepath.Join(t.TempDir(), "portal.yaml")
+	for _, portal := range []string{"portal-a", "portal-b"} {
+		WriteStructToFile(ClientInformation{StartUrl: portal}, ClientInfoFileDestination(portal, configPath, ""))
+	}
+	legacyPath := ClientInfoFileDestination("portal-b", "", "")
+	WriteStructToFile(ClientInformation{StartUrl: "portal-b"}, legacyPath)
+	flags := flag.NewFlagSet("force", flag.ContinueOnError)
+	flags.Bool("force", true, "")
+	flags.String("start-url", "portal-b", "")
+	flags.String("config-path", configPath, "")
+	applyForceFlag(cli.NewContext(cli.NewApp(), flags, nil))
+	if _, err := os.Stat(ClientInfoFileDestination("portal-b", configPath, "")); !os.IsNotExist(err) {
+		t.Fatalf("portal B token was not removed: %v", err)
+	}
+	if _, err := ReadClientInformation(ClientInfoFileDestination("portal-a", configPath, "")); err != nil {
+		t.Fatalf("forcing portal B removed portal A token: %v", err)
+	}
+	if _, err := ReadClientInformation(legacyPath); err != nil {
+		t.Fatalf("forcing a custom config removed the default token: %v", err)
+	}
+}
+
+func TestRefreshUsesSelectedPortal(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	configPath := filepath.Join(t.TempDir(), "portal.yaml")
+	previousPath, previousConfig := CredentialsFilePath, Config
+	CredentialsFilePath = filepath.Join(t.TempDir(), "credentials")
+	defer func() { CredentialsFilePath, Config = previousPath, previousConfig }()
+	for _, portal := range []string{"b", "a"} {
+		startUrl := "https://" + portal + ".awsapps.com/start"
+		SaveUsageInformation(
+			&sso.AccountInfo{AccountId: aws.String("account-" + portal), AccountName: aws.String(portal)},
+			&sso.RoleInfo{RoleName: aws.String("role-" + portal)}, startUrl, configPath,
+		)
+		WriteStructToFile(ClientInformation{
+			StartUrl: startUrl, AccessToken: "token-" + portal,
+			AccessTokenExpiresAt: time.Now().Add(time.Hour),
+		}, filepath.Join(home, ".aws", "sso", "cache", "access-token-"+portal+".awsapps.com.json"))
+	}
+	request := &sso.GetRoleCredentialsInput{}
+	client := mockSSOClient{
+		ReceivedInput: request,
+		GetRoleCredentialsOutput: sso.GetRoleCredentialsOutput{RoleCredentials: &sso.RoleCredentials{
+			AccessKeyId: aws.String("refreshed-key"), SecretAccessKey: aws.String("refreshed-secret"),
+			SessionToken: aws.String("refreshed-session"), Expiration: aws.Int64(time.Now().Add(time.Hour).UnixMilli()),
+		}},
+	}
+	flags := flag.NewFlagSet("refresh", flag.ContinueOnError)
+	flags.String("start-url", "https://b.awsapps.com/start", "")
+	flags.String("config-path", configPath, "")
+	flags.String("profile", "portal-b", "")
+	flags.String("region", "eu-central-1", "")
+	RefreshCredentials(nil, client, cli.NewContext(nil, flags, nil))
+	if aws.StringValue(request.AccountId) != "account-b" || aws.StringValue(request.RoleName) != "role-b" || aws.StringValue(request.AccessToken) != "token-b" {
+		t.Fatal("refresh did not request the selected portal's account, role and token")
+	}
+}
+
+func TestRefreshUsesLegacyCacheWithoutConfigPath(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	previousPath, previousConfig := CredentialsFilePath, Config
+	CredentialsFilePath = filepath.Join(t.TempDir(), "credentials")
+	defer func() { CredentialsFilePath, Config = previousPath, previousConfig }()
+	startUrl := "https://b.awsapps.com/start"
+	WriteStructToFile(ClientInformation{
+		StartUrl: startUrl, AccessToken: "token-legacy",
+		AccessTokenExpiresAt: time.Now().Add(time.Hour),
+	}, filepath.Join(home, ".aws", "sso", "cache", "access-token.json"))
+	WriteStructToFile(LastUsageInformation{
+		AccountId: "account-legacy", AccountName: "legacy", Role: "role-legacy",
+	}, filepath.Join(home, ".aws", "sso", "cache", "last-usage.json"))
+	request := &sso.GetRoleCredentialsInput{}
+	client := mockSSOClient{
+		ReceivedInput: request,
+		GetRoleCredentialsOutput: sso.GetRoleCredentialsOutput{RoleCredentials: &sso.RoleCredentials{
+			AccessKeyId: aws.String("refreshed-key"), SecretAccessKey: aws.String("refreshed-secret"),
+			SessionToken: aws.String("refreshed-session"), Expiration: aws.Int64(time.Now().Add(time.Hour).UnixMilli()),
+		}},
+	}
+	flags := flag.NewFlagSet("refresh", flag.ContinueOnError)
+	flags.String("start-url", startUrl, "")
+	flags.String("profile", "default", "")
+	flags.String("region", "eu-central-1", "")
+	RefreshCredentials(nil, client, cli.NewContext(nil, flags, nil))
+	if aws.StringValue(request.AccountId) != "account-legacy" || aws.StringValue(request.RoleName) != "role-legacy" || aws.StringValue(request.AccessToken) != "token-legacy" {
+		t.Fatal("refresh did not read the original cache files")
+	}
+}
+
 type mockSSOOIDCClient struct {
 	ssooidciface.SSOOIDCAPI
 	CreateTokenOutput              ssooidc.CreateTokenOutput
@@ -204,6 +299,7 @@ func (m mockSSOOIDCClient) RegisterClient(*ssooidc.RegisterClientInput) (*ssooid
 }
 
 type mockSSOClient struct {
+	ReceivedInput *sso.GetRoleCredentialsInput
 	ssoiface.SSOAPI
 	GetRoleCredentialsOutput sso.GetRoleCredentialsOutput
 	ListAccountRolesOutput   sso.ListAccountRolesOutput
@@ -218,7 +314,10 @@ func (m mockSSOClient) ListAccounts(_ *sso.ListAccountsInput) (*sso.ListAccounts
 	return &m.ListAccountsOutput, nil
 }
 
-func (m mockSSOClient) GetRoleCredentials(*sso.GetRoleCredentialsInput) (*sso.GetRoleCredentialsOutput, error) {
+func (m mockSSOClient) GetRoleCredentials(input *sso.GetRoleCredentialsInput) (*sso.GetRoleCredentialsOutput, error) {
+	if m.ReceivedInput != nil {
+		*m.ReceivedInput = *input
+	}
 	return &m.GetRoleCredentialsOutput, nil
 }
 
