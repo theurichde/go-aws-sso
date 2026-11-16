@@ -20,7 +20,7 @@ Make working with AWS SSO on local machines an ease.
 * Choose your desired account and role interactively
 * Choose your account and role via flags from command line
 * Utilize AWSs `credential_process` to avoid storing credentials locally
-  * Locks concurrent calls to `credential_process` to no DDoS your Browser (this behaviour occurs from time to time when using e.g. the k8s plugin for IntelliJ)   
+  * Locks concurrent calls to `credential_process` to no DDoS your Browser (this behaviour occurs from time to time when using e.g. the k8s plugin for IntelliJ)
 * Refresh credentials based on your previously chosen account and role (if you've chosen to persist your credentials)
 * Store your Start-URL and region
 * Set different profiles for your different accounts
@@ -160,7 +160,7 @@ $ GO_AWS_SSO_HEADLESS=1 go-aws-sso
 <details><summary>Basics</summary>
 
 ```
-$ go-aws-sso config                                 
+$ go-aws-sso config
 NAME:
    go-aws-sso config - Handles configuration. Note: Config location defaults to $HOME/$CONFIG_DIR/go-aws-sso/config.yml
 
@@ -184,14 +184,14 @@ OPTIONS:
   $ go-aws-sso config generate --help
   NAME:
      go-aws-sso config generate - Generate a config file
-  
+
   USAGE:
      go-aws-sso config generate [command options] [arguments...]
-  
+
   DESCRIPTION:
      Generates a config file. All available properties are interactively prompted if not set with command options.
      Overrides the existing config file!
-  
+
   OPTIONS:
      --start-url value, -u value   set / override the SSO login start-url. (Example: https://my-login.awsapps.com/start#/)
      --region value, -r value      set / override the AWS region
@@ -203,17 +203,17 @@ OPTIONS:
 * <details><summary>Config Editing</summary>
 
   ```
-  $ go-aws-sso config edit --help    
+  $ go-aws-sso config edit --help
   NAME:
      go-aws-sso config edit - Edit the config file
-  
+
   USAGE:
      go-aws-sso config edit [command options] [arguments...]
-  
+
   DESCRIPTION:
      Edit the config file. All available properties are interactively prompted.
      Overrides the existing config file!
-  
+
   OPTIONS:
      --help, -h  show help (default: false)
   ```
@@ -223,7 +223,7 @@ OPTIONS:
 ### Example Usage
 
 ```
-$ go-aws-sso help  
+$ go-aws-sso help
 NAME:
    go-aws-sso - Retrieve short-living credentials via AWS SSO & SSOOIDC
 
@@ -260,7 +260,7 @@ GLOBAL OPTIONS:
 2021/11/08 19:34:40 WARN No Start URL given. Please set it now.
 ✔ SSO Start URL: https://my-sso-login.awsapps.com
 Search: █
-? Select your AWS Region. Hint: FuzzySearch supported: 
+? Select your AWS Region. Hint: FuzzySearch supported:
   ▸ us-east-2
     us-east-1
     us-west-1
@@ -274,8 +274,8 @@ Search: █
 2021/11/08 19:34:40 INFO Config file generated: /home/theurichde/.config/go-aws-sso/config.yml
 2021/11/08 19:34:40 WARN Please verify your client request: https://device.sso.eu-central-1.amazonaws.com/?user_code=USR-CDE
 2021/11/08 19:34:40 INFO Still waiting for authorization...
-Search: 
-? Select your account - Hint: fuzzy search supported. To choose one account directly just enter #{Int}: 
+Search:
+? Select your account - Hint: fuzzy search supported. To choose one account directly just enter #{Int}:
   ▸ #0 Awesome API - SDLC YYYYYXXXXXXX
     #1 Team Sandbox XXXXXXXXXXXX
     #2 Awesome API - Production YYYYYYYYYYYY
@@ -287,6 +287,17 @@ Search:
 ```
 
 ---
+
+## Testing
+
+`TestProcessCredentialProcessTemplateBotocoreOnWindows` checks Windows command quoting against botocore's `_windows_shell_split`. It skips on other operating systems or if Python or botocore is unavailable. To run it locally on Windows, activate a Python environment and use:
+
+```bash
+python -m pip install botocore==1.44.3
+go test ./pkg/sso -run '^TestProcessCredentialProcessTemplateBotocoreOnWindows$' -v
+```
+
+CI runs the full suite on Ubuntu and installs Python 3.14 and botocore on Windows to run this integration test. To skip explicitly, use `go test ./... -skip '^TestProcessCredentialProcessTemplateBotocoreOnWindows$'`.
 
 ## Contributions
 

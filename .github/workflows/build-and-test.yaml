@@ -13,7 +13,10 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -33,11 +36,25 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
+      - name: Set up Python
+        if: runner.os == 'Windows'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Install botocore
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          botocore_python="$(command -v python3 || command -v python)"
+          "$botocore_python" -m pip install botocore==1.44.3
+          "$botocore_python" -c "from botocore.compat import _windows_shell_split"
+
       - name: Go vet
         run: |
           go vet ./...
           go vet github.com/theurichde/go-aws-sso/internal
-          
+
       - name: Tests
         run: |
           go clean -r -testcache

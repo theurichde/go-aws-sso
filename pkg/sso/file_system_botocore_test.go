@@ -9,6 +9,9 @@ import (
 )
 
 func TestProcessCredentialProcessTemplateBotocoreOnWindows(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("this integration test checks Windows command quoting")
+	}
 	python, err := exec.LookPath("python3")
 	if err != nil {
 		python, err = exec.LookPath("python")
@@ -24,14 +27,9 @@ func TestProcessCredentialProcessTemplateBotocoreOnWindows(t *testing.T) {
 	template := processCredentialProcessTemplateWithExeName(
 		exeName, "accountid", "rolename", "eu-central-1", "portal profile", configPath,
 	)
-	platform := runtime.GOOS
-	if platform == "windows" {
-		platform = "win32"
-	}
-	// Botocore uses _windows_shell_split on Windows and shlex.split elsewhere.
-	const test_script = "import json, sys; from botocore.compat import compat_shell_split; " +
-		"print(json.dumps(compat_shell_split(sys.argv[1], platform=sys.argv[2])))"
-	output, err := exec.Command(python, "-c", test_script, template.CredentialProcess, platform).CombinedOutput()
+	const test_script = "import json, sys; from botocore.compat import _windows_shell_split; " +
+		"print(json.dumps(_windows_shell_split(sys.argv[1])))"
+	output, err := exec.Command(python, "-c", test_script, template.CredentialProcess).CombinedOutput()
 	if err != nil {
 		t.Fatalf("botocore parser failed: %v\n%s", err, output)
 	}
