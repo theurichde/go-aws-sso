@@ -145,14 +145,15 @@ func ReadClientInformation(file string) (ClientInformation, error) {
 }
 
 func WriteStructToFile(payload interface{}, dest string) {
-	targetDir := path.Dir(dest)
+	targetDir := filepath.Dir(dest)
 	if !isFileOrFolderExisting(targetDir) {
 		err := os.MkdirAll(targetDir, 0700)
 		check(err)
 	}
 	file, err := json.MarshalIndent(payload, "", " ")
 	check(err)
-	_ = os.WriteFile(dest, file, 0600)
+	err = os.WriteFile(dest, file, 0600)
+	check(err)
 }
 
 func check(err error) {
