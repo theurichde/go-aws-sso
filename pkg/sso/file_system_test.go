@@ -164,7 +164,7 @@ func TestProcessCredentialProcessTemplateWithExeName(t *testing.T) {
 				CredentialProcess: fmt.Sprintf("%s --config-path %s assume -q -a accountid -n rolename -p portal-a", "go-aws-sso", `'/some directory/portal-a.yaml'`),
 				Region:            "region",
 			},
-			windowsCredentialProcess: fmt.Sprintf("%s --config-path %s assume -q -a accountid -n rolename -p portal-a", "go-aws-sso", `^"/some^ directory/portal-a.yaml^"`),
+			windowsCredentialProcess: fmt.Sprintf("%s --config-path %s assume -q -a accountid -n rolename -p portal-a", "go-aws-sso", `"/some directory/portal-a.yaml"`),
 		},
 		{
 			name:      "exe name has special characters",
@@ -177,7 +177,7 @@ func TestProcessCredentialProcessTemplateWithExeName(t *testing.T) {
 				CredentialProcess: fmt.Sprintf("%s assume -q -a accountid -n rolename -p default", `'@exe#name$'`),
 				Region:            "region",
 			},
-			windowsCredentialProcess: fmt.Sprintf("%s assume -q -a accountid -n rolename -p default", `^"@exe#name$^"`),
+			windowsCredentialProcess: fmt.Sprintf("%s assume -q -a accountid -n rolename -p default", `"@exe#name$"`),
 		},
 		{
 			name:      "exe name has spaces",
@@ -190,7 +190,7 @@ func TestProcessCredentialProcessTemplateWithExeName(t *testing.T) {
 				CredentialProcess: fmt.Sprintf("%s assume -q -a accountid -n rolename -p default", `'e x e name'`),
 				Region:            "region",
 			},
-			windowsCredentialProcess: fmt.Sprintf("%s assume -q -a accountid -n rolename -p default", `^"e^ x^ e^ name^"`),
+			windowsCredentialProcess: fmt.Sprintf("%s assume -q -a accountid -n rolename -p default", `"e x e name"`),
 		},
 	}
 

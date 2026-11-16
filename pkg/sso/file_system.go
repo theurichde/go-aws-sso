@@ -38,7 +38,13 @@ func ProcessPersistedCredentialsTemplate(credentials *sso.GetRoleCredentialsOutp
 	return profileTemplate
 }
 
-func ProcessCredentialProcessTemplate(accountId string, roleName string, region string, profile string, configPath string) CredentialsFileTemplate {
+// ProcessCredentialProcessTemplate creates a credential process template using the default config path.
+func ProcessCredentialProcessTemplate(accountId string, roleName string, region string, profile string) CredentialsFileTemplate {
+	return ProcessCredentialProcessTemplateWithConfigPath(accountId, roleName, region, profile, "")
+}
+
+// ProcessCredentialProcessTemplateWithConfigPath creates a credential process template using a config path.
+func ProcessCredentialProcessTemplateWithConfigPath(accountId string, roleName string, region string, profile string, configPath string) CredentialsFileTemplate {
 	exeName, err := os.Executable()
 	check(err)
 	if configPath != "" {
@@ -60,7 +66,7 @@ func processCredentialProcessTemplateWithExeName(exeName string, accountId strin
 			continue
 		}
 		if runtime.GOOS == "windows" {
-			args[i] = windows.Cmd.Quote(windows.Argv.Quote(arg))
+			args[i] = windows.Argv.Quote(arg)
 		} else {
 			args[i] = unix.SingleQuote.Quote(arg)
 		}
