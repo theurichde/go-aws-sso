@@ -186,7 +186,9 @@ func TestInvalidConfigPath(t *testing.T) {
 }
 
 func TestForceRemovesOnlySelectedPortalToken(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	t.Setenv("TMPDIR", t.TempDir())
 	configPath := filepath.Join(t.TempDir(), "portal.yaml")
 	for _, portal := range []string{"portal-a", "portal-b"} {
@@ -213,6 +215,7 @@ func TestForceRemovesOnlySelectedPortalToken(t *testing.T) {
 func TestRefreshUsesSelectedPortal(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	configPath := filepath.Join(t.TempDir(), "portal.yaml")
 	previousPath, previousConfig := CredentialsFilePath, Config
 	CredentialsFilePath = filepath.Join(t.TempDir(), "credentials")
@@ -250,6 +253,7 @@ func TestRefreshUsesSelectedPortal(t *testing.T) {
 func TestRefreshUsesLegacyCacheWithoutConfigPath(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	previousPath, previousConfig := CredentialsFilePath, Config
 	CredentialsFilePath = filepath.Join(t.TempDir(), "credentials")
 	defer func() { CredentialsFilePath, Config = previousPath, previousConfig }()

@@ -83,7 +83,11 @@ func TestWriteConfig(t *testing.T) {
 			}
 
 			configFile, err := os.Open(tempFile)
-			fail(err, t)
+			if err != nil {
+				t.Fatal(err)
+			}
+			// Close before the outer cleanup: Windows cannot remove an open file.
+			defer configFile.Close()
 
 			bytes, err := os.ReadFile(configFile.Name())
 			fail(err, t)
