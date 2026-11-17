@@ -23,10 +23,11 @@ type LastUsageInformation struct {
 func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, context *cli.Context) {
 
 	startUrl := context.String("start-url")
+	configPath := context.String("config-path")
 	LoadRuntimeConfig(context.Bool("headless"))
-	clientInformation, err := ReadClientInformation(ClientInfoFileDestination())
+	clientInformation, err := ReadClientInformation(ClientInfoFileDestination(startUrl, configPath, ""))
 	if err != nil || clientInformation.StartUrl != startUrl {
-		clientInformation = ProcessClientInformation(oidcClient, startUrl)
+		clientInformation = ProcessClientInformation(oidcClient, startUrl, configPath)
 	}
 
 	zap.S().Infof("Using Start URL %s", clientInformation.StartUrl)
@@ -34,14 +35,14 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 	var accountId *string
 	var roleName *string
 
-	lui, err := readUsageInformation()
+	lui, err := readUsageInformation(startUrl, configPath)
 	if err != nil {
 		if strings.Contains(err.Error(), "no such file") {
 			zap.S().Info("Nothing to refresh yet")
 			accountInfo, awsErr := RetrieveAccountInfo(clientInformation, ssoClient, Prompter{})
 			if awsErr != nil {
 				if awsErr.StatusCode() == 401 { // unauthorized
-					clientInformation, accountInfo = retryWithNewClientCreds(oidcClient, ssoClient, startUrl)
+					clientInformation, accountInfo = retryWithNewClientCreds(oidcClient, ssoClient, startUrl, configPath)
 				} else {
 					check(awsErr)
 				}
@@ -50,7 +51,7 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 			check(roleErr)
 			roleName = roleInfo.RoleName
 			accountId = accountInfo.AccountId
-			SaveUsageInformation(accountInfo, roleInfo)
+			SaveUsageInformation(accountInfo, roleInfo, startUrl, configPath)
 		}
 	} else {
 		accountId = &lui.AccountId
@@ -70,18 +71,17 @@ func RefreshCredentials(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.S
 	zap.S().Infof("Credentials expire at: %s\n", time.Unix(*roleCredentials.RoleCredentials.Expiration/1000, 0))
 }
 
-func retryWithNewClientCreds(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, startUrl string) (ClientInformation, *sso.AccountInfo) {
-	osErr := os.Remove(ClientInfoFileDestination())
+func retryWithNewClientCreds(oidcClient ssooidciface.SSOOIDCAPI, ssoClient ssoiface.SSOAPI, startUrl string, configPath string) (ClientInformation, *sso.AccountInfo) {
+	osErr := os.Remove(ClientInfoFileDestination(startUrl, configPath, ""))
 	check(osErr)
-	clientInformation := ProcessClientInformation(oidcClient, startUrl)
+	clientInformation := ProcessClientInformation(oidcClient, startUrl, configPath)
 	accountInfo, awsErr := RetrieveAccountInfo(clientInformation, ssoClient, Prompter{})
 	check(awsErr)
 	return clientInformation, accountInfo
 }
 
-func SaveUsageInformation(accountInfo *sso.AccountInfo, roleInfo *sso.RoleInfo) {
-	homeDir, _ := os.UserHomeDir()
-	target := homeDir + "/.aws/sso/cache/last-usage.json"
+func SaveUsageInformation(accountInfo *sso.AccountInfo, roleInfo *sso.RoleInfo, startUrl string, configPath string) {
+	target := ClientInfoFileDestination(startUrl, configPath, "last-usage")
 	usageInformation := LastUsageInformation{
 		AccountId:   *accountInfo.AccountId,
 		AccountName: *accountInfo.AccountName,
@@ -90,9 +90,8 @@ func SaveUsageInformation(accountInfo *sso.AccountInfo, roleInfo *sso.RoleInfo) 
 	WriteStructToFile(usageInformation, target)
 }
 
-func readUsageInformation() (*LastUsageInformation, error) {
-	homeDir, _ := os.UserHomeDir()
-	bytes, err := os.ReadFile(homeDir + "/.aws/sso/cache/last-usage.json")
+func readUsageInformation(startUrl string, configPath string) (*LastUsageInformation, error) {
+	bytes, err := os.ReadFile(ClientInfoFileDestination(startUrl, configPath, "last-usage"))
 	if err != nil {
 		return nil, err
 	}

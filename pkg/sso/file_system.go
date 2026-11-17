@@ -3,11 +3,15 @@ package sso
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"path"
+	"path/filepath"
+	"runtime"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/service/sso"
+	"github.com/sergeymakinen/go-quote/unix"
+	"github.com/sergeymakinen/go-quote/windows"
 	"go.uber.org/zap"
 	"gopkg.in/ini.v1"
 )
@@ -34,15 +38,41 @@ func ProcessPersistedCredentialsTemplate(credentials *sso.GetRoleCredentialsOutp
 	return profileTemplate
 }
 
+// ProcessCredentialProcessTemplate creates a credential process template using the default config path.
 func ProcessCredentialProcessTemplate(accountId string, roleName string, region string, profile string) CredentialsFileTemplate {
-	exeName, err := os.Executable()
-	check(err)
-	return processCredentialProcessTemplateWithExeName(exeName, accountId, roleName, region, profile)
+	return ProcessCredentialProcessTemplateWithConfigPath(accountId, roleName, region, profile, "")
 }
 
-func processCredentialProcessTemplateWithExeName(exeName string, accountId string, roleName string, region string, profile string) CredentialsFileTemplate {
+// ProcessCredentialProcessTemplateWithConfigPath creates a credential process template using a config path.
+func ProcessCredentialProcessTemplateWithConfigPath(accountId string, roleName string, region string, profile string, configPath string) CredentialsFileTemplate {
+	exeName, err := os.Executable()
+	check(err)
+	if configPath != "" {
+		configPath, err = filepath.Abs(configPath)
+		check(err)
+	}
+	return processCredentialProcessTemplateWithExeName(exeName, accountId, roleName, region, profile, configPath)
+}
+
+func processCredentialProcessTemplateWithExeName(exeName string, accountId string, roleName string, region string, profile string, configPath string) CredentialsFileTemplate {
+	args := []string{exeName}
+	if configPath != "" {
+		args = append(args, "--config-path", configPath)
+	}
+	args = append(args, "assume", "-q", "-a", accountId, "-n", roleName, "-p", profile)
+	// Select OS-specific argument quoting for Windows support.
+	for i, arg := range args {
+		if arg != "" && !strings.ContainsAny(arg, " \t\r\n\"\\$`'&;|<>()!%*?#") {
+			continue
+		}
+		if runtime.GOOS == "windows" {
+			args[i] = windows.Argv.Quote(arg)
+		} else {
+			args[i] = unix.SingleQuote.Quote(arg)
+		}
+	}
 	profileTemplate := CredentialsFileTemplate{
-		CredentialProcess: fmt.Sprintf("%s assume -q -a %s -n %s -p %s", exeName, accountId, roleName, profile),
+		CredentialProcess: strings.Join(args, " "),
 		Region:            region,
 	}
 	return profileTemplate
@@ -106,7 +136,7 @@ func isFileOrFolderExisting(target string) bool {
 func ReadClientInformation(file string) (ClientInformation, error) {
 	if isFileOrFolderExisting(file) {
 		clientInformation := ClientInformation{}
-		content, _ := os.ReadFile(ClientInfoFileDestination())
+		content, _ := os.ReadFile(file)
 		err := json.Unmarshal(content, &clientInformation)
 		check(err)
 		return clientInformation, nil
@@ -115,14 +145,15 @@ func ReadClientInformation(file string) (ClientInformation, error) {
 }
 
 func WriteStructToFile(payload interface{}, dest string) {
-	targetDir := path.Dir(dest)
+	targetDir := filepath.Dir(dest)
 	if !isFileOrFolderExisting(targetDir) {
 		err := os.MkdirAll(targetDir, 0700)
 		check(err)
 	}
 	file, err := json.MarshalIndent(payload, "", " ")
 	check(err)
-	_ = os.WriteFile(dest, file, 0600)
+	err = os.WriteFile(dest, file, 0600)
+	check(err)
 }
 
 func check(err error) {

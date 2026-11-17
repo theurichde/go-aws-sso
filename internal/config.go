@@ -2,7 +2,7 @@ package internal
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	. "github.com/theurichde/go-aws-sso/pkg/sso"
@@ -47,20 +47,26 @@ func GenerateConfigAction(context *cli.Context) error {
 		Region:   region,
 	}
 
-	configFile := ConfigFilePath()
+	configFile := ConfigFilePath(context.String("config-path"))
 	err := writeConfig(configFile, appConfig)
 	return err
 }
 
-func EditConfigAction(_ *cli.Context) error {
+func EditConfigAction(context *cli.Context) error {
 
-	config := ReadConfig(ConfigFilePath())
+	configFile := ConfigFilePath(context.String("config-path"))
+	if _, err := os.Stat(configFile); os.IsNotExist(err) {
+		return GenerateConfigAction(context)
+	} else if err != nil {
+		return err
+	}
+	config := ReadConfig(configFile)
 
 	prompter := Prompter{}
 	config.StartUrl = promptStartUrl(prompter, config.StartUrl)
 	config.Region = promptRegion(prompter)
 
-	err := writeConfig(ConfigFilePath(), *config)
+	err := writeConfig(configFile, *config)
 	check(err)
 	return err
 
@@ -80,7 +86,8 @@ func writeConfig(filePath string, ac AppConfig) error {
 	bytes, err := yaml.Marshal(ac)
 	check(err)
 
-	base := path.Dir(filePath)
+	// Use OS-specific separators for Windows support.
+	base := filepath.Dir(filePath)
 	err = os.MkdirAll(base, 0755)
 	check(err)
 
@@ -92,8 +99,13 @@ func writeConfig(filePath string, ac AppConfig) error {
 	return err
 }
 
-func ConfigFilePath() string {
+func ConfigFilePath(configPath string) string {
+	if configPath != "" {
+		return configPath
+	}
+
 	configDir, err := os.UserConfigDir()
 	check(err)
-	return configDir + "/go-aws-sso/config.yml"
+	// Use OS-specific separators for Windows support.
+	return filepath.Join(configDir, "go-aws-sso", "config.yml")
 }
