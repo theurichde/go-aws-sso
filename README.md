@@ -1,5 +1,3 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/theurichde/go-aws-sso)](https://goreportcard.com/report/github.com/theurichde/go-aws-sso)
-
 # go-aws-sso
 
 Make working with AWS SSO on local machines an ease.
